@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -803,7 +804,7 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 // ═══════════════════════════════════════════════════════════
 // Step 1: Deploy the Cloudflare Worker (see instructions at top of file)
 // Step 2: Replace the URL below with your worker URL
-var PROXY_URL = localStorage.getItem('proxy_url') || 'YOUR_CLOUDFLARE_WORKER_URL';
+var PROXY_URL = localStorage.getItem('proxy_url') || 'https://wispy-snowflake-1ce6.introy.workers.dev/';
 // Example: var PROXY_URL = 'https://cisco-proxy.yourname.workers.dev';
 
 // ═══════════════════════════════════════════════════════════
@@ -846,12 +847,12 @@ let currentCGBtn = null;
 // ═══════════════════════════════════════════════════════════
 window.addEventListener('load', () => {
   startClock();
-  if (newsApiKey) {
+  // Auto-init if we have an anthropic key, otherwise show banner
+  if (anthropicKey) {
     document.getElementById('api-banner').classList.add('hidden');
     init();
   } else {
     document.getElementById('overlay').classList.add('hidden');
-    document.getElementById('newsapi-key').value = newsApiKey;
   }
 });
 
@@ -917,19 +918,8 @@ function stepOverlay(idx, delay) {
 // NEWS
 // ═══════════════════════════════════════════════════════════
 async function fetchNews(idx) {
-  const co = COMPANIES[idx];
-  if (!newsApiKey) { renderStaticNews(idx); return; }
-  try {
-    const q = encodeURIComponent(co.queries[0]);
-    const from = new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0];
-    const url = `https://newsapi.org/v2/everything?q=${q}&from=${from}&sortBy=publishedAt&pageSize=6&language=en&apiKey=${newsApiKey}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.status === 'ok' && data.articles?.length) {
-      newsCache[idx] = data.articles.slice(0, 6);
-      renderLiveNews(idx, newsCache[idx]);
-    } else { renderStaticNews(idx); }
-  } catch(e) { renderStaticNews(idx); }
+  // NewsAPI free tier blocks browser requests (426) - using curated news
+  renderStaticNews(idx);
 }
 
 function renderLiveNews(idx, articles) {
