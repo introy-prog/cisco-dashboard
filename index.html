@@ -307,8 +307,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
   <div class="api-banner-text">
     <strong>Setup:</strong> NewsAPI key (newsapi.org) for live news + Anthropic API key (console.anthropic.com) for AI features. Stored in your browser only. <span style="color:var(--amber)">⚠ AI calls use corsproxy.io — don't use truly confidential data.</span>
   </div>
-  <input class="api-input" id="newsapi-key" placeholder="NewsAPI key" />
-  <input class="api-input" id="anthropic-key" placeholder="Anthropic API key (optional)" style="width:240px;" />
+  <input class="api-input" id="newsapi-key" placeholder="NewsAPI key (newsapi.org)" />
+  <input class="api-input" id="anthropic-key" placeholder="Anthropic API key (sk-ant-...)" style="width:230px;" />
+  <input class="api-input" id="proxy-url-input" placeholder="Cloudflare Worker URL (yourname.workers.dev)" style="width:280px;" />
   <button class="api-save-btn" onclick="saveKeys()">Save &amp; Launch →</button>
 </div>
 
@@ -798,6 +799,14 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 
 <script>
 // ═══════════════════════════════════════════════════════════
+// CONFIGURATION - Update PROXY_URL after deploying Cloudflare Worker
+// ═══════════════════════════════════════════════════════════
+// Step 1: Deploy the Cloudflare Worker (see instructions at top of file)
+// Step 2: Replace the URL below with your worker URL
+var PROXY_URL = localStorage.getItem('proxy_url') || 'YOUR_CLOUDFLARE_WORKER_URL';
+// Example: var PROXY_URL = 'https://cisco-proxy.yourname.workers.dev';
+
+// ═══════════════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════════════
 const COMPANIES = [
@@ -849,8 +858,10 @@ window.addEventListener('load', () => {
 function saveKeys() {
   newsApiKey = document.getElementById('newsapi-key').value.trim();
   anthropicKey = document.getElementById('anthropic-key').value.trim();
+  const proxyUrl = document.getElementById('proxy-url-input').value.trim();
   if (newsApiKey) localStorage.setItem('newsapi_key', newsApiKey);
   if (anthropicKey) localStorage.setItem('anthropic_key', anthropicKey);
+  if (proxyUrl) { localStorage.setItem('proxy_url', proxyUrl); window.PROXY_URL = proxyUrl; }
   document.getElementById('api-banner').classList.add('hidden');
   init();
 }
@@ -865,7 +876,7 @@ window.testAnthropic = async function() {
   if (!anthropicKey) { console.error('No Anthropic key set'); return; }
   console.log('Testing Anthropic API via corsproxy.io...');
   try {
-    const res = await fetch('https://corsproxy.io/?https://api.anthropic.com/v1/messages', {
+    const res = await fetch(PROXY_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':anthropicKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:50,messages:[{role:'user',content:'Say hello in 5 words.'}]})
@@ -1010,7 +1021,7 @@ Return JSON only (no markdown):
 Generate exactly 5 sell ideas across all 5 categories, specific to the news.`;
 
   try {
-    const res = await fetch('https://corsproxy.io/?https://api.anthropic.com/v1/messages', {
+    const res = await fetch(PROXY_URL, {
       method: 'POST',
       headers: {
         'Content-Type':'application/json',
@@ -1162,7 +1173,7 @@ Return JSON only (no markdown):
 Each email 100-180 words. Sign 'Morgan Hamilton, Cisco' or 'Morgan'. Do NOT use generic placeholders like [Name] or [Company].`;
 
   try {
-    const res = await fetch('https://corsproxy.io/?https://api.anthropic.com/v1/messages', {
+    const res = await fetch(PROXY_URL, {
       method: 'POST',
       headers: {
         'Content-Type':'application/json',
@@ -1306,7 +1317,7 @@ Return JSON (no markdown):
 }`;
 
   try {
-    const res = await fetch('https://corsproxy.io/?https://api.anthropic.com/v1/messages', {
+    const res = await fetch(PROXY_URL, {
       method: 'POST',
       headers: {
         'Content-Type':'application/json',
@@ -1393,7 +1404,7 @@ async function runQ(idx) {
   const co = COMPANIES[idx];
   const newsCtx = newsCache[idx] ? newsCache[idx].map(a=>a.title).join('; ') : (STATIC_NEWS[idx]||[]).map(a=>a.headline).join('; ');
   try {
-    const res = await fetch('https://corsproxy.io/?https://api.anthropic.com/v1/messages', {
+    const res = await fetch(PROXY_URL, {
       method:'POST',
       headers: {
         'Content-Type':'application/json',
@@ -1449,7 +1460,7 @@ Identify common ground: geography, education, career, sports, family, music, out
 Return JSON only: {"contact":"${name}","title":"${title}","summary":"2 sentences","topOpener":"best opener","commonalities":[{"category":"Geography|Education|Career|Professional|Personal|Sports|Community","icon":"emoji","title":"short","description":"detail","morganSide":"...","contactSide":"...","opener":"opener","strength":1-5}]}
 Sort by strength desc. 4-7 items. Specific.`;
   try {
-    const res = await fetch('https://corsproxy.io/?https://api.anthropic.com/v1/messages', {
+    const res = await fetch(PROXY_URL, {
       method:'POST',
       headers: {
         'Content-Type':'application/json',
