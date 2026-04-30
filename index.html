@@ -880,7 +880,7 @@ window.testAnthropic = async function() {
     const res = await fetch(PROXY_URL, {
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':anthropicKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:50,messages:[{role:'user',content:'Say hello in 5 words.'}]})
+      body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:50,messages:[{role:'user',content:'Say hello in 5 words.'}]})
     });
     const data = await res.json();
     console.log('SUCCESS:', data);
@@ -1019,7 +1019,7 @@ Generate exactly 5 sell ideas across all 5 categories, specific to the news.`;
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, messages:[{role:'user',content:prompt}] })
+      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:1000, messages:[{role:'user',content:prompt}] })
     });
     const data = await res.json();
     const raw = data.content?.map(c => c.text||'').join('').replace(/```json|```/g,'').trim();
@@ -1171,7 +1171,7 @@ Each email 100-180 words. Sign 'Morgan Hamilton, Cisco' or 'Morgan'. Do NOT use 
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1500, messages:[{role:'user',content:prompt}] })
+      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:1500, messages:[{role:'user',content:prompt}] })
     });
     const data = await res.json();
     const raw = data.content?.map(c => c.text||'').join('').replace(/```json|```/g,'').trim();
@@ -1315,7 +1315,7 @@ Return JSON (no markdown):
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1500, messages:[{role:'user',content:prompt}] })
+      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:1500, messages:[{role:'user',content:prompt}] })
     });
     const data = await res.json();
     const raw = data.content?.map(c => c.text||'').join('').replace(/```json|```/g,'').trim();
@@ -1402,7 +1402,7 @@ async function runQ(idx) {
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, messages:[{role:'user',content:`Cisco sales analyst. Morgan owns ${co.name}. Context: ${COMPANY_CONTEXT[idx]}. News: ${newsCtx}. Q: ${q}. Answer in 3-5 sentences with specific Cisco recommendations.`}]})
+      body: JSON.stringify({ model:'claude-sonnet-4-5', max_tokens:1000, messages:[{role:'user',content:`Cisco sales analyst. Morgan owns ${co.name}. Context: ${COMPANY_CONTEXT[idx]}. News: ${newsCtx}. Q: ${q}. Answer in 3-5 sentences with specific Cisco recommendations.`}]})
     });
     const data = await res.json();
     const text = data.content?.map(c=>c.text||'').join('') || 'No response.';
@@ -1458,7 +1458,7 @@ Sort by strength desc. 4-7 items. Specific.`;
         'anthropic-version': '2023-06-01',
         'anthropic-dangerous-direct-browser-access': 'true'
       },
-      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:prompt}]})
+      body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1500,messages:[{role:'user',content:prompt}]})
     });
     const data = await res.json();
     const raw = data.content?.map(c=>c.text||'').join('').replace(/```json|```/g,'').trim();
