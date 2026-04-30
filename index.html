@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cisco Account Intelligence — v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080c12; --bg-card: #0d1520; --bg-card2: #111c2b; --bg-card3: #0a1118;
+  --cisco: #00bceb; --green: #00d68f; --amber: #ffb347; --red: #ff4d6d; --purple: #9b72ff;
+  --t1: #e8f0fe; --t2: #7a9ab8; --t3: #3d5a73;
+  --border: #1a2d40; --border2: #1f3a52;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--t1);font-family:'IBM Plex Sans',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(0,188,235,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,188,235,0.025) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
+/* TOPBAR */
+.topbar{position:sticky;top:0;z-index:100;background:rgba(8,12,18,0.97);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:50px;}
+.topbar-left{display:flex;align-items:center;gap:14px;}
+.logo{display:flex;align-items:center;gap:8px;font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;color:var(--cisco);}
+.divider{width:1px;height:20px;background:var(--border);}
+.topbar-title{font-size:12px;font-weight:600;letter-spacing:.06em;color:var(--t2);text-transform:uppercase;}
+.topbar-right{display:flex;align-items:center;gap:12px;}
+.live-badge{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--green);background:rgba(0,214,143,0.08);border:1px solid rgba(0,214,143,0.2);padding:4px 10px;border-radius:12px;}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse-dot 2s infinite;}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.8);}}
+.clock{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t3);}
+.refresh-btn{display:flex;align-items:center;gap:6px;padding:6px 14px;background:rgba(0,188,235,0.1);border:1px solid rgba(0,188,235,0.25);border-radius:8px;color:var(--cisco);font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:.06em;text-transform:uppercase;}
+.refresh-btn:hover{background:rgba(0,188,235,0.2);border-color:var(--cisco);}
+.refresh-btn.spinning svg{animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+/* API BANNER */
+.api-banner{background:linear-gradient(90deg,rgba(0,188,235,0.08),rgba(155,114,255,0.06));border-bottom:1px solid rgba(0,188,235,0.15);padding:10px 20px;display:flex;align-items:center;gap:14px;font-size:12px;flex-wrap:wrap;}
+.api-banner.hidden{display:none;}
+.api-banner-text{color:var(--t2);flex:1;}
+.api-banner-text strong{color:var(--cisco);}
+.api-input{background:var(--bg-card3);border:1px solid var(--border);border-radius:6px;padding:6px 12px;color:var(--t1);font-family:'IBM Plex Mono',monospace;font-size:11px;outline:none;width:280px;}
+.api-input::placeholder{color:var(--t3);}
+.api-input:focus{border-color:rgba(0,188,235,.4);}
+.api-save-btn{padding:6px 14px;background:rgba(0,188,235,.15);border:1px solid rgba(0,188,235,.3);border-radius:6px;color:var(--cisco);font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;cursor:pointer;}
+
+/* HEAT MAP STRIP - NEW IN V3 */
+.heat-strip{background:var(--bg-card);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;gap:10px;align-items:center;overflow-x:auto;}
+.heat-label{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;color:var(--t3);letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;flex-shrink:0;}
+.heat-card{display:flex;align-items:center;gap:8px;background:var(--bg-card3);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;transition:all .2s;flex-shrink:0;}
+.heat-card:hover{border-color:var(--border2);transform:translateY(-1px);}
+.heat-flame{font-size:14px;}
+.heat-name{font-size:12px;font-weight:600;color:var(--t1);}
+.heat-score{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;}
+.heat-hot{color:var(--red);}.heat-warm{color:var(--amber);}.heat-ok{color:var(--green);}.heat-cool{color:var(--t3);}
+.heat-trigger{font-size:10px;color:var(--t2);font-style:italic;}
+
+/* TABS */
+.company-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--bg-card);padding:0 20px;position:sticky;top:50px;z-index:90;overflow-x:auto;}
+.tab{padding:12px 18px;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;display:flex;flex-direction:column;gap:2px;white-space:nowrap;}
+.tab:hover{color:var(--t2);}
+.tab.active{color:var(--cisco);border-bottom-color:var(--cisco);}
+.tab-sub{font-size:10px;font-weight:400;font-family:'IBM Plex Mono',monospace;opacity:.6;}
+
+/* MAIN */
+.main{padding:20px;max-width:1400px;margin:0 auto;position:relative;z-index:1;}
+.panel{display:none;}
+.panel.active{display:block;animation:fadeIn .3s ease;}
+
+/* COMPANY HEADER */
+.company-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;padding:16px 20px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;}
+.company-name{font-size:18px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:10px;}
+.heat-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;letter-spacing:.06em;}
+.heat-badge-hot{background:rgba(255,77,109,.12);color:var(--red);border:1px solid rgba(255,77,109,.25);}
+.heat-badge-warm{background:rgba(255,179,71,.12);color:var(--amber);border:1px solid rgba(255,179,71,.25);}
+.heat-badge-ok{background:rgba(0,214,143,.12);color:var(--green);border:1px solid rgba(0,214,143,.25);}
+.meta-row{display:flex;gap:8px;flex-wrap:wrap;}
+.meta-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;background:var(--bg-card3);border:1px solid var(--border);border-radius:12px;font-size:11px;color:var(--t2);font-family:'IBM Plex Mono',monospace;}
+.meta-badge span{color:var(--cisco);}
+
+/* QUICK ACTIONS BAR - NEW IN V3 */
+.quick-actions{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.qa-btn{display:flex;align-items:center;gap:6px;padding:9px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;color:var(--t2);font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;}
+.qa-btn:hover{border-color:var(--cisco);color:var(--cisco);background:rgba(0,188,235,.05);}
+.qa-btn.primary{background:rgba(0,188,235,.1);border-color:rgba(0,188,235,.3);color:var(--cisco);}
+.qa-btn.primary:hover{background:rgba(0,188,235,.18);}
+
+/* SIGNALS */
+.signals-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+.signal-card{background:var(--bg-card);border:1px solid var(--border);border-radius:9px;padding:12px;display:flex;gap:10px;align-items:flex-start;}
+.sig-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.si-a{background:rgba(255,179,71,.12);}.si-r{background:rgba(255,77,109,.12);}.si-b{background:rgba(0,188,235,.12);}.si-p{background:rgba(155,114,255,.12);}.si-g{background:rgba(0,214,143,.12);}
+.sig-label{font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px;}
+.sig-val{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:2px;}
+.sig-sub{font-size:11px;color:var(--t2);}
+
+/* AI BRIEFING */
+.briefing-box{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px;position:relative;}
+.briefing-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cisco),var(--purple));}
+.briefing-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);}
+.briefing-label{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--cisco);font-family:'IBM Plex Mono',monospace;}
+.briefing-meta{font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace;}
+.briefing-body{padding:14px 16px;font-size:13px;color:var(--t2);line-height:1.65;}
+.briefing-body strong{color:var(--cisco);}
+.briefing-skeleton{height:60px;background:linear-gradient(90deg,var(--bg-card3) 25%,rgba(0,188,235,.05) 50%,var(--bg-card3) 75%);background-size:200% 100%;animation:shimmer 1.5s infinite;border-radius:6px;}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+/* RESEARCH */
+.research-bar{display:flex;gap:10px;margin-bottom:14px;}
+.r-input{flex:1;background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--t1);font-family:'IBM Plex Sans',sans-serif;font-size:13px;outline:none;}
+.r-input::placeholder{color:var(--t3);}
+.r-input:focus{border-color:rgba(0,188,235,.4);}
+.r-btn{padding:10px 18px;background:rgba(0,188,235,.12);border:1px solid rgba(0,188,235,.25);border-radius:8px;color:var(--cisco);font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;}
+.r-btn:hover{background:rgba(0,188,235,.22);border-color:var(--cisco);}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:1fr 340px;gap:14px;}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.card-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);}
+.card-title{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t2);}
+.card-badge{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--t3);background:var(--bg-card3);border:1px solid var(--border);padding:2px 8px;border-radius:8px;}
+.card-body{padding:14px;max-height:420px;overflow-y:auto;}
+.card-body::-webkit-scrollbar{width:4px;}
+.card-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+
+/* SELL IDEAS */
+.sell-idea{border-radius:8px;padding:11px 13px;margin-bottom:10px;border-left:3px solid;background:var(--bg-card3);border-top:1px solid var(--border);border-right:1px solid var(--border);border-bottom:1px solid var(--border);position:relative;}
+.idea-net{border-left-color:var(--cisco);}.idea-sec{border-left-color:var(--red);}.idea-col{border-left-color:var(--green);}.idea-obs{border-left-color:var(--purple);}.idea-dc{border-left-color:var(--amber);}
+.idea-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
+.idea-cat{padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;font-family:'IBM Plex Mono',monospace;}
+.cat-net{background:rgba(0,188,235,.12);color:var(--cisco);}.cat-sec{background:rgba(255,77,109,.12);color:var(--red);}.cat-col{background:rgba(0,214,143,.12);color:var(--green);}.cat-obs{background:rgba(155,114,255,.12);color:var(--purple);}.cat-dc{background:rgba(255,179,71,.12);color:var(--amber);}
+.idea-score{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t3);}
+.idea-score strong{color:var(--cisco);}
+.idea-title{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:4px;}
+.idea-rationale{font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:4px;}
+.idea-trigger{font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace;font-style:italic;margin-bottom:6px;}
+.idea-action{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:rgba(0,188,235,.08);border:1px solid rgba(0,188,235,.2);border-radius:6px;color:var(--cisco);font-size:10px;font-weight:600;cursor:pointer;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.04em;}
+.idea-action:hover{background:rgba(0,188,235,.15);}
+
+/* CONTACTS */
+.contact-item{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;border-radius:6px;padding-left:6px;padding-right:6px;}
+.contact-item:hover{background:var(--bg-card3);}
+.contact-item:last-child{border-bottom:none;}
+.avatar{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.av-b{background:rgba(0,188,235,.15);color:var(--cisco);}.av-g{background:rgba(0,214,143,.15);color:var(--green);}.av-a{background:rgba(255,179,71,.15);color:var(--amber);}.av-p{background:rgba(155,114,255,.15);color:var(--purple);}.av-r{background:rgba(255,77,109,.15);color:var(--red);}
+.c-name{font-size:13px;font-weight:600;color:var(--t1);}
+.c-title{font-size:11px;color:var(--t2);margin-bottom:2px;}
+.c-note{font-size:11px;color:var(--t3);}
+.c-note strong{color:var(--cisco);}
+.c-dot{width:7px;height:7px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+.p-hi{background:var(--green);}.p-md{background:var(--amber);}.p-lo{background:var(--t3);}
+
+/* NEWS */
+.news-item{padding:10px 0;border-bottom:1px solid var(--border);}
+.news-item:last-child{border-bottom:none;}
+.news-headline{font-size:12px;font-weight:500;color:var(--t1);line-height:1.4;margin-bottom:5px;}
+.news-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.news-src{font-size:10px;color:var(--t3);font-family:'IBM Plex Mono',monospace;}
+.news-age{font-size:10px;color:var(--t3);}
+.news-tag{padding:1px 7px;border-radius:8px;font-size:10px;font-weight:600;font-family:'IBM Plex Mono',monospace;}
+.tag-b{background:rgba(0,188,235,.1);color:var(--cisco);}.tag-g{background:rgba(0,214,143,.1);color:var(--green);}.tag-a{background:rgba(255,179,71,.1);color:var(--amber);}.tag-r{background:rgba(255,77,109,.1);color:var(--red);}.tag-p{background:rgba(155,114,255,.1);color:var(--purple);}
+.news-link{font-size:10px;color:var(--cisco);text-decoration:none;opacity:.7;}
+.news-link:hover{opacity:1;}
+
+/* COMPETITIVE INTEL - NEW IN V3 */
+.compete-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;}
+.compete-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.compete-title{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t2);display:flex;align-items:center;gap:7px;}
+.compete-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.compete-item{background:var(--bg-card3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;}
+.compete-vendor{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.compete-name{font-size:13px;font-weight:600;color:var(--t1);}
+.compete-threat{font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:700;padding:1px 7px;border-radius:6px;}
+.threat-hi{background:rgba(255,77,109,.12);color:var(--red);}
+.threat-md{background:rgba(255,179,71,.12);color:var(--amber);}
+.threat-lo{background:rgba(0,214,143,.12);color:var(--green);}
+.compete-foothold{font-size:11px;color:var(--t2);margin-bottom:5px;}
+.compete-counter{font-size:11px;color:var(--cisco);background:rgba(0,188,235,.05);border-left:2px solid var(--cisco);padding:5px 8px;border-radius:0 4px 4px 0;}
+.compete-counter strong{font-weight:700;}
+
+/* MODAL - NEW IN V3 (for email drafts & meeting prep) */
+.modal-overlay{position:fixed;inset:0;background:rgba(8,12,18,.85);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);}
+.modal-overlay.visible{display:flex;animation:fadeIn .2s ease;}
+.modal{background:var(--bg-card);border:1px solid var(--border2);border-radius:12px;max-width:780px;width:100%;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 12px 60px rgba(0,0,0,.6);}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);}
+.modal-title{font-size:14px;font-weight:700;color:var(--t1);display:flex;align-items:center;gap:8px;}
+.modal-title-sub{font-size:11px;font-weight:400;color:var(--t3);font-family:'IBM Plex Mono',monospace;margin-left:6px;}
+.modal-close{width:30px;height:30px;border-radius:6px;background:transparent;border:1px solid var(--border);color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;}
+.modal-close:hover{background:var(--bg-card3);color:var(--t1);}
+.modal-body{padding:20px;overflow-y:auto;flex:1;}
+.modal-body::-webkit-scrollbar{width:6px;}
+.modal-body::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+
+/* EMAIL DRAFTER */
+.email-tabs{display:flex;gap:0;margin-bottom:14px;border-bottom:1px solid var(--border);}
+.email-tab{padding:9px 16px;font-size:12px;font-weight:600;color:var(--t3);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;}
+.email-tab:hover{color:var(--t2);}
+.email-tab.active{color:var(--cisco);border-bottom-color:var(--cisco);}
+.email-block{display:none;}
+.email-block.active{display:block;animation:fadeIn .2s ease;}
+.email-meta{font-size:11px;color:var(--t3);margin-bottom:10px;font-family:'IBM Plex Mono',monospace;background:var(--bg-card3);padding:8px 12px;border-radius:6px;border:1px solid var(--border);}
+.email-meta strong{color:var(--cisco);}
+.email-subject{background:var(--bg-card3);border:1px solid var(--border);border-radius:6px;padding:9px 14px;font-size:13px;font-weight:600;color:var(--t1);margin-bottom:10px;}
+.email-body{background:var(--bg-card3);border:1px solid var(--border);border-radius:6px;padding:14px 16px;font-size:13px;color:var(--t2);line-height:1.65;white-space:pre-wrap;font-family:'IBM Plex Sans',sans-serif;min-height:160px;}
+.email-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.email-action-btn{padding:8px 14px;background:var(--bg-card3);border:1px solid var(--border);border-radius:6px;color:var(--t2);font-size:11px;font-weight:600;cursor:pointer;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.06em;}
+.email-action-btn:hover{border-color:var(--cisco);color:var(--cisco);}
+.email-action-btn.primary{background:rgba(0,188,235,.1);border-color:rgba(0,188,235,.3);color:var(--cisco);}
+
+/* MEETING PREP */
+.prep-section{margin-bottom:18px;}
+.prep-section-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--cisco);font-family:'IBM Plex Mono',monospace;margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.prep-section-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.prep-item{padding:10px 14px;background:var(--bg-card3);border:1px solid var(--border);border-radius:7px;margin-bottom:8px;font-size:13px;color:var(--t2);line-height:1.55;}
+.prep-item strong{color:var(--cisco);}
+.prep-item.priority{border-left:3px solid var(--green);}
+.prep-num{display:inline-block;width:18px;height:18px;border-radius:4px;background:rgba(0,188,235,.12);color:var(--cisco);font-size:11px;font-weight:700;text-align:center;line-height:18px;margin-right:8px;font-family:'IBM Plex Mono',monospace;}
+.prep-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.prep-bigtitle{font-size:18px;font-weight:700;color:var(--t1);margin-bottom:4px;}
+.prep-bigsub{font-size:12px;color:var(--t2);margin-bottom:14px;font-family:'IBM Plex Mono',monospace;}
+.prep-time-input{display:flex;gap:8px;margin-bottom:14px;align-items:center;font-size:12px;color:var(--t2);}
+.prep-time-input select{background:var(--bg-card3);border:1px solid var(--border);border-radius:6px;padding:5px 10px;color:var(--t1);font-family:'IBM Plex Mono',monospace;font-size:11px;}
+
+/* COMMON GROUND */
+.cg-contact-grid{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.cg-btn{padding:6px 13px;background:var(--bg-card3);border:1px solid var(--border);border-radius:20px;color:var(--t2);font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.cg-btn:hover{border-color:var(--cisco);color:var(--cisco);}
+.cg-btn.active{background:rgba(0,188,235,.12);border-color:var(--cisco);color:var(--cisco);font-weight:600;}
+.cg-item{display:flex;gap:11px;padding:10px 12px;background:var(--bg-card3);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;}
+.cg-icon{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.cg-title-x{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:3px;}
+.cg-desc{font-size:12px;color:var(--t2);line-height:1.5;}
+.cg-opener{background:rgba(0,188,235,.06);border:1px solid rgba(0,188,235,.15);border-radius:5px;padding:7px 11px;margin-top:6px;font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--cisco);font-style:italic;}
+.cg-opener::before{content:'💬 Opener: ';font-style:normal;opacity:.7;}
+.cg-stars{color:var(--amber);font-size:11px;}
+.cg-category{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;background:var(--bg-card);border:1px solid var(--border);padding:1px 7px;border-radius:8px;color:var(--t3);font-family:'IBM Plex Mono',monospace;}
+.cg-compare{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px;}
+.cg-side{font-size:11px;color:var(--t2);background:var(--bg-card);padding:5px 8px;border-radius:5px;}
+.cg-side .lbl{font-weight:600;}
+.cg-lbl-you{color:var(--cisco);}.cg-lbl-them{color:var(--amber);}
+.top-opener{background:rgba(0,214,143,.05);border:1px solid rgba(0,214,143,.18);border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;}
+.top-opener-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:5px;}
+.top-opener-text{font-size:13px;color:var(--t1);line-height:1.55;font-style:italic;}
+.cg-summary{background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;margin-bottom:14px;}
+.cg-summary-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--cisco);margin-bottom:6px;font-family:'IBM Plex Mono',monospace;}
+.cg-summary-text{font-size:13px;color:var(--t2);line-height:1.6;}
+
+/* LOADING */
+.loading-block{display:flex;align-items:center;gap:10px;padding:16px;color:var(--cisco);font-family:'IBM Plex Mono',monospace;font-size:12px;}
+.mini-spin{width:16px;height:16px;border:2px solid rgba(0,188,235,.2);border-top-color:var(--cisco);border-radius:50%;animation:spin .8s linear infinite;}
+.empty-state{text-align:center;padding:30px;color:var(--t3);font-size:13px;}
+.empty-icon{font-size:28px;margin-bottom:8px;}
+
+/* OVERLAY */
+.overlay{position:fixed;inset:0;background:rgba(8,12,18,.95);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;}
+.overlay.hidden{display:none;}
+.overlay-ring{width:48px;height:48px;border:3px solid rgba(0,188,235,.15);border-top-color:var(--cisco);border-radius:50%;animation:spin 1s linear infinite;}
+.overlay-title{font-size:16px;font-weight:700;color:var(--cisco);}
+.overlay-steps{display:flex;flex-direction:column;gap:6px;min-width:280px;}
+.overlay-step{font-size:12px;font-family:'IBM Plex Mono',monospace;color:var(--t3);display:flex;align-items:center;gap:8px;}
+.overlay-step.done{color:var(--green);}
+.overlay-step.active{color:var(--cisco);}
+
+.footer{text-align:center;padding:30px 20px;font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace;}
+</style>
+</head>
+<body>
+
+<!-- Refresh overlay -->
+<div class="overlay" id="overlay">
+  <div class="overlay-ring"></div>
+  <div class="overlay-title">Loading Live Intelligence</div>
+  <div class="overlay-steps" id="overlay-steps">
+    <div class="overlay-step active" id="step-0">○ Connecting to news APIs...</div>
+    <div class="overlay-step" id="step-1">○ Fetching GlobalFoundries signals...</div>
+    <div class="overlay-step" id="step-2">○ Fetching Corning signals...</div>
+    <div class="overlay-step" id="step-3">○ Fetching MassMutual signals...</div>
+    <div class="overlay-step" id="step-4">○ Fetching UVM Health signals...</div>
+    <div class="overlay-step" id="step-5">○ Generating AI briefings &amp; sell ideas...</div>
+    <div class="overlay-step" id="step-6">○ Calculating account heat scores...</div>
+    <div class="overlay-step" id="step-7">○ Dashboard ready.</div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">
+      <svg width="22" height="16" viewBox="0 0 22 16" fill="var(--cisco)"><rect x="0" y="6" width="2" height="4" rx="1"/><rect x="3" y="4" width="2" height="8" rx="1"/><rect x="6" y="2" width="2" height="12" rx="1"/><rect x="9" y="0" width="2" height="16" rx="1"/><rect x="12" y="2" width="2" height="12" rx="1"/><rect x="15" y="4" width="2" height="8" rx="1"/><rect x="18" y="6" width="2" height="4" rx="1"/></svg>
+      CISCO
+    </div>
+    <div class="divider"></div>
+    <div class="topbar-title">Account Intelligence v3 · Morgan Hamilton</div>
+  </div>
+  <div class="topbar-right">
+    <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+    <div class="clock" id="clock">--:--:--</div>
+    <button class="refresh-btn" id="refresh-btn" onclick="fullRefresh()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      Refresh
+    </button>
+  </div>
+</div>
+
+<!-- API key banner -->
+<div class="api-banner" id="api-banner">
+  <div class="api-banner-text">
+    <strong>Setup:</strong> NewsAPI key (newsapi.org) for live news + Anthropic API key (console.anthropic.com) for AI features. Stored in your browser only. <span style="color:var(--amber)">⚠ AI calls use corsproxy.io — don't use truly confidential data.</span>
+  </div>
+  <input class="api-input" id="newsapi-key" placeholder="NewsAPI key" />
+  <input class="api-input" id="anthropic-key" placeholder="Anthropic API key (optional)" style="width:240px;" />
+  <button class="api-save-btn" onclick="saveKeys()">Save &amp; Launch →</button>
+</div>
+
+<!-- HEAT MAP STRIP - Always visible -->
+<div class="heat-strip" id="heat-strip">
+  <span class="heat-label">🔥 Daily Account Heat:</span>
+  <div class="heat-card" onclick="showTab(0)" id="heat-0">
+    <span class="heat-flame">🔥</span><span class="heat-name">GlobalFoundries</span>
+    <span class="heat-score heat-hot" id="heat-score-0">--</span>
+    <span class="heat-trigger" id="heat-trig-0">calculating...</span>
+  </div>
+  <div class="heat-card" onclick="showTab(1)" id="heat-1">
+    <span class="heat-flame">⚡</span><span class="heat-name">Corning</span>
+    <span class="heat-score heat-warm" id="heat-score-1">--</span>
+    <span class="heat-trigger" id="heat-trig-1">calculating...</span>
+  </div>
+  <div class="heat-card" onclick="showTab(2)" id="heat-2">
+    <span class="heat-flame">⚡</span><span class="heat-name">MassMutual</span>
+    <span class="heat-score heat-warm" id="heat-score-2">--</span>
+    <span class="heat-trigger" id="heat-trig-2">calculating...</span>
+  </div>
+  <div class="heat-card" onclick="showTab(3)" id="heat-3">
+    <span class="heat-flame">🔥</span><span class="heat-name">UVM Health</span>
+    <span class="heat-score heat-hot" id="heat-score-3">--</span>
+    <span class="heat-trigger" id="heat-trig-3">calculating...</span>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="company-tabs">
+  <div class="tab active" onclick="showTab(0)">GlobalFoundries<span class="tab-sub">Semiconductor</span></div>
+  <div class="tab" onclick="showTab(1)">Corning<span class="tab-sub">Optical / Glass</span></div>
+  <div class="tab" onclick="showTab(2)">MassMutual<span class="tab-sub">Insurance / FinTech</span></div>
+  <div class="tab" onclick="showTab(3)">UVM Health<span class="tab-sub">Healthcare Network</span></div>
+  <div class="tab" onclick="showTab(4)">🤝 Common Ground<span class="tab-sub">AI Icebreaker</span></div>
+</div>
+
+<div class="main">
+
+<!-- ══ PANEL 0: GLOBALFOUNDRIES ══ -->
+<div class="panel active" id="panel-0">
+  <div class="company-header">
+    <div>
+      <div class="company-name">GlobalFoundries (GF) <span class="heat-badge heat-badge-hot" id="head-heat-0">🔥 HOT</span></div>
+      <div class="meta-row">
+        <span class="meta-badge"><span>HQ:</span> Malta, NY (~5mi from you)</span>
+        <span class="meta-badge"><span>Revenue:</span> ~$6.7B</span>
+        <span class="meta-badge"><span>Employees:</span> ~13,000</span>
+        <span class="meta-badge"><span>CHIPS Act:</span> $1.5B</span>
+        <span class="meta-badge"><span>Ticker:</span> GFS</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUICK ACTIONS BAR -->
+  <div class="quick-actions">
+    <button class="qa-btn primary" onclick="openMeetingPrep(0)">🎯 Meeting Prep</button>
+    <button class="qa-btn" onclick="openEmailDrafter(0,'GlobalFoundries leadership','exec outreach')">📧 Draft Email</button>
+    <button class="qa-btn" onclick="showTab(4)">🤝 Common Ground</button>
+    <button class="qa-btn" onclick="document.getElementById('q-0').focus()">💬 Ask AI</button>
+  </div>
+
+  <div class="signals-row">
+    <div class="signal-card"><div class="sig-icon si-a">🏗️</div><div><div class="sig-label">Fab Expansion</div><div class="sig-val">Malta Tripling</div><div class="sig-sub">$575M packaging ctr</div></div></div>
+    <div class="signal-card"><div class="sig-icon si-r">👤</div><div><div class="sig-label">CEO Apr '25</div><div class="sig-val">Tim Breen</div><div class="sig-sub">McKinsey alum</div></div></div>
+    <div class="signal-card"><div class="sig-icon si-b">💻</div><div><div class="sig-label">Digital Transform</div><div class="sig-val">Brad Clay CDO</div><div class="sig-sub">GPO model overhaul</div></div></div>
+    <div class="signal-card"><div class="sig-icon si-p">🤖</div><div><div class="sig-label">AI/Edge Focus</div><div class="sig-val">Key Priority</div><div class="sig-sub">Cloud → edge shift</div></div></div>
+  </div>
+
+  <div class="briefing-box">
+    <div class="briefing-header">
+      <div class="briefing-label"><span>◆</span> AI Daily Briefing — Live</div>
+      <div class="briefing-meta" id="briefing-ts-0">Loading...</div>
+    </div>
+    <div class="briefing-body" id="briefing-0"><div class="briefing-skeleton"></div></div>
+  </div>
+
+  <div class="research-bar">
+    <input class="r-input" id="q-0" placeholder="Ask about GlobalFoundries…" onkeydown="if(event.key==='Enter')runQ(0)"/>
+    <button class="r-btn" onclick="runQ(0)">◆ Ask AI</button>
+  </div>
+  <div id="r-out-0"></div>
+
+  <!-- COMPETITIVE INTEL -->
+  <div class="compete-card">
+    <div class="compete-header">
+      <div class="compete-title">⚔️ Competitive Landscape</div>
+      <span class="card-badge">incumbents & threats</span>
+    </div>
+    <div class="compete-grid">
+      <div class="compete-item">
+        <div class="compete-vendor"><span class="compete-name">Arista Networks</span><span class="compete-threat threat-hi">HIGH THREAT</span></div>
+        <div class="compete-foothold">Strong in semiconductor fabs for AI/ML datacenter networking. Often wins on EOS programmability.</div>
+        <div class="compete-counter"><strong>Counter:</strong> Cisco Nexus 9000 + AI Pods with full UCS integration; SiliconOne for next-gen scale; lifecycle services Arista can't match.</div>
+      </div>
+      <div class="compete-item">
+        <div class="compete-vendor"><span class="compete-name">Palo Alto Networks</span><span class="compete-threat threat-hi">HIGH THREAT</span></div>
+        <div class="compete-foothold">Likely incumbent for OT/IT firewall and Prisma SASE in fab environments.</div>
+        <div class="compete-counter"><strong>Counter:</strong> Cisco XDR's fab-floor OT visibility + Catalyst IE ruggedized switches give unified IT/OT story PAN can't match natively.</div>
+      </div>
+      <div class="compete-item">
+        <div class="compete-vendor"><span class="compete-name">Dell / HPE</span><span class="compete-threat threat-md">MEDIUM</span></div>
+        <div class="compete-foothold">Dell PowerEdge widely used for EDA workstations. HPE GreenLake for hybrid datacenter.</div>
+        <div class="compete-counter"><strong>Counter:</strong> Cisco UCS X-Series + Intersight = better lifecycle ops at scale; tighter Nexus integration for GPU clusters.</div>
+      </div>
+      <div class="compete-item">
+        <div class="compete-vendor"><span class="compete-name">Microsoft Teams</span><span class="compete-threat threat-md">MEDIUM</span></div>
+        <div class="compete-foothold">Likely default collab platform via M365. Cisco wins on devices &amp; rooms.</div>
+        <div class="compete-counter"><strong>Counter:</strong> Webex Devices for fab floor "remote oversight" + Webex Calling for global PSTN consolidation. Lead with hardware story.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-header"><span class="card-title">📋 Daily Sell Ideas</span><span class="card-badge" id="ideas-badge-0">generating...</span></div>
+      <div class="card-body" id="ideas-0"><div class="briefing-skeleton" style="height:120px"></div></div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header"><span class="card-title">👤 Key Contacts</span><span class="card-badge">5 tracked · click to email</span></div>
+        <div class="card-body" id="contacts-0">
+          <div class="contact-item" onclick="openEmailDrafter(0,'Tim Breen','CEO',null)"><div class="avatar av-b">TB</div><div style="flex:1"><div class="c-name">Tim Breen</div><div class="c-title">CEO (Apr 2025)</div><div class="c-note"><strong>Angle:</strong> AI edge, global ops</div></div><div class="c-dot p-hi"></div></div>
+          <div class="contact-item" onclick="openEmailDrafter(0,'Brad Clay','CDO',null)"><div class="avatar av-g">BC</div><div style="flex:1"><div class="c-name">Brad Clay</div><div class="c-title">Chief Digital Officer</div><div class="c-note"><strong>Angle:</strong> ERP, IT infra, digital tx</div></div><div class="c-dot p-hi"></div></div>
+          <div class="contact-item" onclick="openEmailDrafter(0,'Gregg Bartlett','CTO',null)"><div class="avatar av-p">GB</div><div style="flex:1"><div class="c-name">Gregg Bartlett</div><div class="c-title">CTO</div><div class="c-note"><strong>Angle:</strong> R&amp;D infra, lab networking</div></div><div class="c-dot p-md"></div></div>
+          <div class="contact-item" onclick="openEmailDrafter(0,'Niels Anderskouv','President & COO',null)"><div class="avatar av-a">NA</div><div style="flex:1"><div class="c-name">Niels Anderskouv</div><div class="c-title">President &amp; COO</div><div class="c-note"><strong>Angle:</strong> Ops, supply chain</div></div><div class="c-dot p-md"></div></div>
+          <div class="contact-item" onclick="openEmailDrafter(0,'Sanjay Charagulla','Sr Dir AI Datacenter',null)"><div class="avatar av-g">SC</div><div style="flex:1"><div class="c-name">Sanjay Charagulla</div><div class="c-title">Sr Dir AI/Datacenter</div><div class="c-note"><strong>Angle:</strong> AI infra decisions</div></div><div class="c-dot p-hi"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">📡 Live News</span><span class="card-badge" id="news-badge-0">fetching...</span></div>
+        <div class="card-body" id="news-0"><div class="loading-block"><div class="mini-spin"></div>Fetching latest news...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PANEL 1: CORNING ══ -->
+<div class="panel" id="panel-1">
+  <div class="company-header">
+    <div>
+      <div class="company-name">Corning Incorporated <span class="heat-badge heat-badge-warm" id="head-heat-1">⚡ WARM</span></div>
+      <div class="meta-row">
+        <span class="meta-badge"><span>HQ:</span> Corning, NY</span>
+        <span class="meta-badge"><span>Revenue:</span> ~$12.6B</span>
+        <span class="meta-badge"><span>Employees:</span> ~50,000</span>
+        <span class="meta-badge"><span>Focus:</span> AI Fiber Boom</span>
+        <span class="meta-badge"><span>Ticker:</span> GLW</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="quick-actions">
+    <button class="qa-btn primary" onclick="openMeetingPrep(1)">🎯 Meeting Prep</button>
+    <button class="qa-btn" onclick="openEmailDrafter(1,'Corning leadership','exec outreach')">📧 Draft Email</button>
+    <button class="qa-btn" onclick="showTab(4)">🤝 Common Ground</button>
+    <button class="qa-btn" onclick="document.getElementById('q-1').focus()">💬 Ask AI</button>
+  </div>
+
+  <div class="signals-row">
+    <div class="signal-card"><div class="sig-icon si-g">📈</div><div><div class="sig-label">Revenue Growth</div><div class="sig-val">Springboard</div><div class="sig-sub">+$3B target</div></div></div>
+    <div class="signal-card"><div class="sig-icon si-b">📡</div><div><div class="sig-label">AI Tailwind</div><div class="sig-val">Fiber/Data Ctr</div><div class="sig-sub">Hyperscaler boom</div></div></div>
+    <div class="signal-card"><div class="sig-icon si-a">👤</div><div><div class="sig-label">New COO</div><div class="sig-val">Hal Nelson</div><div class="sig-sub">Mid-2025</div></div></div>
+    <div class="signal-card"><div class="sig-icon si-p">🔬</div><div><div class="sig-label">R&D Scale</div><div class="sig-val">Optical R&D</div><div class="sig-sub">Dr. Jaymin Amin CTO</div></div></div>
+  </div>
+
+  <div class="briefing-box">
+    <div class="briefing-header">
+      <div class="briefing-label"><span>◆</span> AI Daily Briefing — Live</div>
+      <div class="briefing-meta" id="briefing-ts-1">Loading...</div>
+    </div>
+    <div class="briefing-body" id="briefing-1"><div class="briefing-skeleton"></div></div>
+  </div>
+
+  <div class="research-bar">
+    <input class="r-input" id="q-1" placeholder="Ask about Corning…" onkeydown="if(event.key==='Enter')runQ(1)"/>
+    <button class="r-btn" onclick="runQ(1)">◆ Ask AI</button>
+  </div>
+  <div id="r-out-1"></div>
+
+  <div class="compete-card">
+    <div class="compete-header">
+      <div class="compete-title">⚔️ Competitive Landscape</div>
+      <span class="card-badge">incumbents & threats</span>
+    </div>
+    <div class="compete-grid">
+      <div class="compete-item">
+        <div class="compete-vendor"><span class="compete-name">Juniper Networks</span><span class="compete-threat threat-hi">HIGH THREAT</span></div>
+        <div class="compete-foothold">Strong R&D networking + Mist AI for campus. HPE acquisition makes them more aggressive.</div>
+        <div class="compete-counter"><strong>Counter:</strong> Cisco Nexus + Silicon One for AI fabric scale; tighter integration with security stack vs HPE/Juniper post-merger uncertainty.</div>
+      </div>
+      <div class="compete-item">
+        <div class="compete-vendor"><span class="compete-name">Zscaler</span><span class="compete-threat threat-hi">HIGH THREAT</span></div>
+        <div class="compete-foothold">Likely SSE incumbent across 50K global employees for cloud security &amp; ZTNA.</div>
+        <div class="compete-counter"><strong>Counter:</strong> Cisco SASE (Umbrella + Secure Access) + Duo wins on integration cost &amp; manufacturing OT story Zscaler doesn't address.</div>
+      </div>
+      <div class="compete-item">
+        <div class="compete-vendor"><span class="compete-name">Microsoft Teams</span><span class="compete-threat threat-md">MEDIUM</span></div>
+        <div class="compete-foothold">Default collab via M365. Some Webex pockets in optical R&amp;D historically.</div>
+        <div class="compete-counter"><strong>Counter:</strong> Webex Calling for global PSTN consolidation; Webex Devices for distributed R&amp;D labs and customer experience centers.</div>
+      </div>
+      <div class="compete-item">
+        <div class="compete-vendor"><span class="compete-name">Datadog / Splunk</span><span class="compete-threat threat-md">MEDIUM</span></div>
+        <div class="compete-foothold">Datadog likely strong in cloud observability. Splunk historic for SIEM (now Cisco-owned).</div>
+        <div class="compete-counter"><strong>Counter:</strong> Cisco now owns Splunk → unified observability + security data lake; AppDynamics for manufacturing app performance.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-header"><span class="card-title">📋 Daily Sell Ideas</span><span class="card-badge" id="ideas-badge-1">generating...</span></div>
+      <div class="card-body" id="ideas-1"><div class="briefing-skeleton" style="height:120px"></div></div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header"><span class="card-title">👤 Key Contacts</span><span class="card-badge">5 · click to email</span></div>
+        <div class="card-body" id="contacts-1">
+          <div class="contact-item" onclick="openEmailDrafter(1,'Wendell Weeks','Chairman, President & CEO',null)"><div class="avatar av-b">WW</div><div style="flex:1"><div class="c-name">Wendell Weeks</div><div class="c-title">Chairman, President &amp; CEO</div><div class="c-note"><strong>Angle:</strong> Springboard, AI fiber vision</div></div><div class="c-dot p-md"></div></div>
+          <div class="contact-item" onclick="openEmailDrafter(1,'Hal Nelson','EVP / Incoming COO',null)"><div class="avatar av-g">HN</div><div style="flex:1"><div class="c-name">Hal Nelson</div><div class="c-title">EVP / Incoming COO</div><div class="c-note"><strong>Angle:</strong> Ops transformation</div></div><div class="c-dot p-hi"></div></div>
+          <div class="contact-item" onclick="openEmailDrafter(1,'Dr. Jaymin Amin','CTO',null)"><div class="avatar av-p">JA</div><div style="flex:1"><div class="c-name">Dr. Jaymin Amin</div><div class="c-title">CTO (SVP)</div><div class="c-note"><strong>Angle:</strong> R&amp;D, advanced networking</div></div><div class="c-dot p-hi"></div></div>
+          <div class="contact-item" onclick="openEmailDrafter(1,'Michael O\u0027Day','SVP Optical Communications',null)"><div class="avatar av-a">MO</div><div style="flex:1"><div class="c-name">Michael O'Day</div><div class="c-title">SVP Optical Communications</div><div class="c-note"><strong>Angle:</strong> Fiber, datacenter connectivity</div></div><div class="c-dot p-hi"></div></div>
+          <div class="contact-item" onclick="openEmailDrafter(1,'John Zhang','EVP Chief Corp Dev',null)"><div class="avatar av-r">JZ</div><div style="flex:1"><div class="c-name">John Zhang</div><div class="c-title">EVP Chief Corp Dev</div><div class="c-note"><strong>Angle:</strong> M&amp;A, partnerships</div></div><div class="c-dot p-md"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">📡 Live News</span><span class="card-badge" id="news-badge-1">fetching...</span></div>
+        <div class="card-body" id="news-1"><div class="loading-block"><div class="mini-spin"></div>Fetching latest news...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PANEL 2: MASSMUTUAL (UPDATED WITH CTO VACANCY) ══ -->
+<div class="panel" id="panel-2">
+  <div class="company-header">
+    <div>
+      <div class="company-name">MassMutual <span class="heat-badge heat-badge-warm" id="head-heat-2">⚡ WARM</span></div>
+      <div class="meta-row">
+        <span class="meta-badge"><span>HQ:</span> Springfield, MA</span>
+        <span class="meta-badge"><span>Fortune:</span> #102</span>
+        <span class="meta-badge"><span>AUM:</span> $300B+</span>
+        <span class="meta-badge"><span>IT Budget:</span> ~$650M</span>
+        <span class="meta-badge"><span>Status:</span> CTO Vacant</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="quick-actions">
+    <button class="qa-btn primary" onclick="openMeetingPrep(2)">🎯 Meeting Prep</button>
+    <button class="qa-btn" onclick="openEmailDrafter(2,'MassMutual leadership','exec outreach')">📧 Draft Email</button>
+    <button class="qa-btn" onclick="showTab(4)">🤝 Common Ground</button>
+    <button class="qa-btn" onclick="document.getElementById('q-2').focus()">💬 Ask AI</button>
+  </div>
+
+  <div class="signals-row">
+    <div class="signal-card"><div class="sig-icon si-p">🤖</div><div><div class="sig-label">Agentic AI</div><div class="sig-val">Q1 '26 Goal</div><div class="sig-sub">Full agentic SDLC</div></div></div>
+    <div class="signal-card"><div class="sig-icon si-r">⚠️</div><div><div class="sig-label">CTO Vacant</div><div class="sig-val">Since Aug '25</div><div class="sig-sub">Tara Long → FM Insurance</div></div></div>
+    <div class="signal-card"><div class="sig-icon si-g">☁️</div><div><div class="sig-label">Cloud Done</div><div class="sig-val">36mo Rebuild ✓</div><div class="sig-sub">AWS-primary, Azure hybrid</div></div></div>
+    <div class="signal-card"><div class="sig-icon si-b">🔒</div><div><div class="sig-label">Zero Trust</div><div class="sig-val">Active Push</div><div class="sig-sub">Eric Boateng CISO</div></div></div>
+  </div>
+
+  <div class="briefing-box">
+    <div class="briefing-header">
+      <div class="briefing-label"><span>◆</span> AI Daily Briefing — Live</div>
+      <div class="briefing-meta" id="briefing-ts-2">Loading...</div>
+    </div>
+    <div class="briefing-body" id="briefing-2"><div class="briefing-skeleton"></div></div>
+  </div>
+
+  <div class="research-bar">
+    <input class="r-input" id="q-2" placeholder="Ask about MassMutual…" onkeydown="if(event.key==='Enter')runQ(2)"/>
+    <button class="r-btn" onclick="runQ(2)">◆ Ask AI</button>
+  </div>
+  <div id="r-out-2"></div>
+
+  <div class="compete-card">
+    <div class="compete-header">
+      <div class="compete-title">⚔️ Competitive Landscape</div>
+      <span class="card-badge">incumbents & threats</span>
+    </div>
+    <div class="compete-grid">
+      <div class="compete-item">
+        <div class="compete-vendor"><span class="compete-name">Palo Alto / Zscaler</span><span class="compete-threat threat-hi">HIGH THREAT</span></div>
+        <div class="compete-foothold">Likely incumbents for SSE/firewall in financial services. Strong AWS-native integrations.</div>
+        <div class="compete-counter"><strong>Counter:</strong> Cisco XDR + Duo + SASE = unified zero trust for agentic AI workflows; Splunk integration tells full story PAN/Zscaler can't.</div>
+      </div>
+      <div class="compete-item">
+        <div class="compete-vendor"><span class="compete-name">Datadog / New Relic</span><span class="compete-threat threat-hi">HIGH THREAT</span></div>
+        <div class="compete-foothold">Common in modern cloud-rebuilt platforms. Likely strong with Sears Merritt's team post-AWS migration.</div>
+        <div class="compete-counter"><strong>Counter:</strong> Cisco AppDynamics + ThousandEyes + Splunk = full-stack observability across hybrid (some Azure too); critical for AI agent tracing.</div>
+      </div>
+      <div class="compete-item">
+        <div class="compete-vendor"><span class="compete-name">Microsoft Teams</span><span class="compete-threat threat-md">MEDIUM</span></div>
+        <div class="compete-foothold">Likely Teams default for collab. Bundled in M365.</div>
+        <div class="compete-counter"><strong>Counter:</strong> Webex AI agent assist for advisor productivity; Webex Contact Center for FA support &amp; compliance recording.</div>
+      </div>
+      <div class="compete-item">
+        <div class="compete-vendor"><span class="compete-name">AWS Native</span><span class="compete-threat threat-md">MEDIUM</span></div>
+        <div class="compete-foothold">AWS networking, security, observability tools likely in use given primary cloud is AWS.</div>
+        <div class="compete-counter"><strong>Counter:</strong> Cisco multi-cloud story (Azure also in play); on-prem datacenter for sensitive workloads where AWS-native doesn't reach.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-header"><span class="card-title">📋 Daily Sell Ideas</span><span class="card-badge" id="ideas-badge-2">generating...</span></div>
+      <div class="card-body" id="ideas-2"><div class="briefing-skeleton" style="height:120px"></div></div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header"><span class="card-title">👤 Key Contacts</span><span class="card-badge">5 · click to email</span></div>
+        <div class="card-body" id="contacts-2">
+          <div class="contact-item" onclick="openEmailDrafter(2,'Sears Merritt','CIO',null)"><div class="avatar av-b">SM</div><div style="flex:1"><div class="c-name">Sears Merritt</div><div class="c-title">CIO / Head of Enterprise Tech</div><div class="c-note"><strong>Angle:</strong> AI platform, cloud, security · Top contact</div></div><div class="c-dot p-hi"></div></div>
+          <div class="contact-item" onclick="openEmailDrafter(2,'Eric Boateng','CISO',null)"><div class="avatar av-r">EB</div><div style="flex:1"><div class="c-name">Eric Boateng</div><div class="c-title">CISO (2024)</div><div class="c-note"><strong>Angle:</strong> Zero trust, XDR, Duo</div></div><div class="c-dot p-hi"></div></div>
+          <div class="contact-item" onclick="openEmailDrafter(2,'Eric Partlan','CIO General Investments',null)"><div class="avatar av-a">EP</div><div style="flex:1"><div class="c-name">Eric Partlan</div><div class="c-title">CIO General Investments</div><div class="c-note"><strong>Angle:</strong> Investment platform infra</div></div><div class="c-dot p-md"></div></div>
+          <div class="contact-item"><div class="avatar av-p" style="opacity:.5">--</div><div style="flex:1"><div class="c-name" style="color:var(--amber)">CTO Role · Vacant</div><div class="c-title">Tara Long departed Aug 2025</div><div class="c-note"><strong>Opportunity:</strong> Sears absorbing scope · less bureaucracy</div></div><div class="c-dot p-md"></div></div>
+          <div class="contact-item" onclick="openEmailDrafter(2,'Roger Crandall','Chairman, President & CEO',null)"><div class="avatar av-p">RC</div><div style="flex:1"><div class="c-name">Roger Crandall</div><div class="c-title">Chairman, President &amp; CEO</div><div class="c-note"><strong>Angle:</strong> Executive alignment</div></div><div class="c-dot p-lo"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">📡 Live News</span><span class="card-badge" id="news-badge-2">fetching...</span></div>
+        <div class="card-body" id="news-2"><div class="loading-block"><div class="mini-spin"></div>Fetching latest news...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PANEL 3: UVM HEALTH ══ -->
+<div class="panel" id="panel-3">
+  <div class="company-header">
+    <div>
+      <div class="company-name">UVM Health Network <span class="heat-badge heat-badge-hot" id="head-heat-3">🔥 HOT</span></div>
+      <div class="meta-row">
+        <span class="meta-badge"><span>HQ:</span> Burlington, VT</span>
+        <span class="meta-badge"><span>Beds:</span> ~1,200 network</span>
+        <span class="meta-badge"><span>Staff:</span> ~15,000</span>
+        <span class="meta-badge"><span>Cost Cuts:</span> $185M mandate</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="quick-actions">
+    <button class="qa-btn primary" onclick="openMeetingPrep(3)">🎯 Meeting Prep</button>
+    <button class="qa-btn" onclick="openEmailDrafter(3,'UVM Health leadership','exec outreach')">📧 Draft Email</button>
+    <button class="qa-btn" onclick="showTab(4)">🤝 Common Ground</button>
+    <button class="qa-btn" onclick="document.getElementById('q-3').focus()">💬 Ask AI</button>
+  </div>
+
+  <div class="signals-row">
+    <div class="signal-card"><div class="sig-icon si-r">🛡️</div><div><div class="sig-label">Cyber Threat</div><div class="sig-val">Healthcare #1</div><div class="sig-sub">2020 ransom victim</div></div></div>
+    <div class="signal-card"><div class="sig-icon si-b">💊</div><div><div class="sig-label">Epic EHR</div><div class="sig-val">Network-wide</div><div class="sig-sub">Lori Boisjoli</div></div></div>
+    <div class="signal-card"><div class="sig-icon si-a">💰</div><div><div class="sig-label">Cost Mandate</div><div class="sig-val">$185M cuts</div><div class="sig-sub">Exec restructure '25</div></div></div>
+    <div class="signal-card"><div class="sig-icon si-r">👤</div><div><div class="sig-label">Interim CEO</div><div class="sig-val">Dr. Leffler</div><div class="sig-sub">Oct '25 · Eappen out</div></div></div>
+  </div>
+
+  <div class="briefing-box">
+    <div class="briefing-header">
+      <div class="briefing-label"><span>◆</span> AI Daily Briefing — Live</div>
+      <div class="briefing-meta" id="briefing-ts-3">Loading...</div>
+    </div>
+    <div class="briefing-body" id="briefing-3"><div class="briefing-skeleton"></div></div>
+  </div>
+
+  <div class="research-bar">
+    <input class="r-input" id="q-3" placeholder="Ask about UVM Health…" onkeydown="if(event.key==='Enter')runQ(3)"/>
+    <button class="r-btn" onclick="runQ(3)">◆ Ask AI</button>
+  </div>
+  <div id="r-out-3"></div>
+
+  <div class="compete-card">
+    <div class="compete-header">
+      <div class="compete-title">⚔️ Competitive Landscape</div>
+      <span class="card-badge">incumbents & threats</span>
+    </div>
+    <div class="compete-grid">
+      <div class="compete-item">
+        <div class="compete-vendor"><span class="compete-name">Aruba (HPE)</span><span class="compete-threat threat-hi">HIGH THREAT</span></div>
+        <div class="compete-foothold">Strong in healthcare Wi-Fi with ClearPass and AI Insights. Often wins on price.</div>
+        <div class="compete-counter"><strong>Counter:</strong> Cisco DNA Center + Catalyst with Spaces (clinical workflow analytics) + Meraki for satellite clinics; Cisco Identity Services Engine for IoMT.</div>
+      </div>
+      <div class="compete-item">
+        <div class="compete-vendor"><span class="compete-name">CrowdStrike / SentinelOne</span><span class="compete-threat threat-hi">HIGH THREAT</span></div>
+        <div class="compete-foothold">Likely EDR incumbent post-2020 ransomware. Strong healthcare presence.</div>
+        <div class="compete-counter"><strong>Counter:</strong> Cisco XDR ingests CrowdStrike data; play "additive" not "rip &amp; replace" — pair with Duo MFA, Umbrella DNS, Secure Firewall.</div>
+      </div>
+      <div class="compete-item">
+        <div class="compete-vendor"><span class="compete-name">Microsoft Teams</span><span class="compete-threat threat-md">MEDIUM</span></div>
+        <div class="compete-foothold">Likely default for clinical collab via M365. Healthcare-specific features lighter.</div>
+        <div class="compete-counter"><strong>Counter:</strong> Webex for Healthcare = HIPAA-validated patient telehealth; Webex Contact Center for nurse triage; integrates w/ Epic.</div>
+      </div>
+      <div class="compete-item">
+        <div class="compete-vendor"><span class="compete-name">Imprivata</span><span class="compete-threat threat-md">MEDIUM</span></div>
+        <div class="compete-foothold">Healthcare-specific identity &amp; SSO. Tap-and-go for clinical workstations.</div>
+        <div class="compete-counter"><strong>Counter:</strong> Duo MFA pairs WITH Imprivata at workstation, dominates remote/BYOD; cheaper, broader integration with Cisco stack.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-header"><span class="card-title">📋 Daily Sell Ideas</span><span class="card-badge" id="ideas-badge-3">generating...</span></div>
+      <div class="card-body" id="ideas-3"><div class="briefing-skeleton" style="height:120px"></div></div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-header"><span class="card-title">👤 Key Contacts</span><span class="card-badge">4 · click to email</span></div>
+        <div class="card-body" id="contacts-3">
+          <div class="contact-item" onclick="openEmailDrafter(3,'Lori Boisjoli','CIO',null)"><div class="avatar av-b">LB</div><div style="flex:1"><div class="c-name">Lori Boisjoli</div><div class="c-title">CIO (Jan 2023)</div><div class="c-note"><strong>Angle:</strong> Epic infra, networking, modernization</div></div><div class="c-dot p-hi"></div></div>
+          <div class="contact-item" onclick="openEmailDrafter(3,'Nate Couture','CTO/CISO',null)"><div class="avatar av-r">NC</div><div style="flex:1"><div class="c-name">Nate Couture</div><div class="c-title">CTO / CISO</div><div class="c-note"><strong>Angle:</strong> Zero trust, CMMC, OT security</div></div><div class="c-dot p-hi"></div></div>
+          <div class="contact-item" onclick="openEmailDrafter(3,'Dr. Steve Leffler','Interim CEO',null)"><div class="avatar av-a">SL</div><div style="flex:1"><div class="c-name">Dr. Steve Leffler</div><div class="c-title">Interim CEO (Oct 2025)</div><div class="c-note"><strong>Angle:</strong> Cost reduction, strategic direction</div></div><div class="c-dot p-md"></div></div>
+          <div class="contact-item" onclick="openEmailDrafter(3,'Al Gobeille','EVP & COO',null)"><div class="avatar av-g">AG</div><div style="flex:1"><div class="c-name">Al Gobeille</div><div class="c-title">EVP &amp; COO</div><div class="c-note"><strong>Angle:</strong> Ops, CIO reports here</div></div><div class="c-dot p-md"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">📡 Live News</span><span class="card-badge" id="news-badge-3">fetching...</span></div>
+        <div class="card-body" id="news-3"><div class="loading-block"><div class="mini-spin"></div>Fetching latest news...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PANEL 4: COMMON GROUND ══ -->
+<div class="panel" id="panel-4">
+  <div class="company-header">
+    <div>
+      <div class="company-name">🤝 Common Ground Intelligence Engine</div>
+      <div class="meta-row">
+        <span class="meta-badge"><span>You:</span> Morgan Hamilton · Cisco AE · Gansevoort, NY</span>
+        <span class="meta-badge"><span>School:</span> RPI Lally · Warrensburg HS</span>
+        <span class="meta-badge"><span>Family:</span> Heather &amp; Macyn (soccer)</span>
+        <span class="meta-badge"><span>Hobbies:</span> Snowmobiling · Deftones · Outdoors</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="briefing-box">
+    <div class="briefing-header"><div class="briefing-label"><span>◆</span> How This Works</div></div>
+    <div class="briefing-body">Select any contact below — the AI researches them and finds <strong>genuine shared connections</strong> (geography, education, career, sports, family, music, outdoor activities) and gives you <strong>ready-to-use conversation openers</strong> ranked by strength.</div>
+  </div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-header"><span class="card-title">👥 Select a Contact</span><span class="card-badge">12 contacts</span></div>
+    <div class="card-body">
+      <div class="cg-contact-grid" id="cg-grid">
+        <button class="cg-btn" onclick="runCG(this,'Tim Breen','CEO, GlobalFoundries','globalfoundries')">Tim Breen · GF CEO</button>
+        <button class="cg-btn" onclick="runCG(this,'Brad Clay','Chief Digital Officer, GlobalFoundries','globalfoundries')">Brad Clay · GF CDO</button>
+        <button class="cg-btn" onclick="runCG(this,'Gregg Bartlett','CTO, GlobalFoundries','globalfoundries')">Gregg Bartlett · GF CTO</button>
+        <button class="cg-btn" onclick="runCG(this,'Sanjay Charagulla','Sr Director AI &amp; Datacenter, GlobalFoundries','globalfoundries')">Sanjay Charagulla · GF</button>
+        <button class="cg-btn" onclick="runCG(this,'Hal Nelson','EVP &amp; incoming COO, Corning','corning')">Hal Nelson · Corning COO</button>
+        <button class="cg-btn" onclick="runCG(this,'Dr. Jaymin Amin','CTO, Corning Incorporated','corning')">Dr. Jaymin Amin · Corning CTO</button>
+        <button class="cg-btn" onclick="runCG(this,'Michael O\u0027Day','SVP Optical Communications, Corning','corning')">Michael O'Day · Corning</button>
+        <button class="cg-btn" onclick="runCG(this,'Sears Merritt','CIO, MassMutual','massmutual')">Sears Merritt · MM CIO</button>
+        <button class="cg-btn" onclick="runCG(this,'Eric Boateng','CISO, MassMutual','massmutual')">Eric Boateng · MM CISO</button>
+        <button class="cg-btn" onclick="runCG(this,'Lori Boisjoli','CIO, UVM Health Network','uvm')">Lori Boisjoli · UVM CIO</button>
+        <button class="cg-btn" onclick="runCG(this,'Nate Couture','CTO &amp; CISO, UVM Health Network','uvm')">Nate Couture · UVM CTO</button>
+        <button class="cg-btn" onclick="runCG(this,'Dr. Steve Leffler','Interim CEO, UVM Health Network','uvm')">Dr. Steve Leffler · UVM CEO</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px;">
+        <input class="r-input" id="cg-custom" placeholder="Or type any name + company…" style="flex:1"/>
+        <button class="r-btn" onclick="runCGCustom()">🔍 Search</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="cg-results">
+    <div class="empty-state"><div class="empty-icon">🤝</div>Select a contact above to discover genuine common ground.</div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- MODAL OVERLAY (Email drafter & Meeting prep) -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal" id="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-title">Modal</div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div class="footer">Cisco Account Intelligence v3 · Morgan Hamilton · Live data via NewsAPI + Claude AI · Refreshes on load</div>
+
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════
+const COMPANIES = [
+  { id: 0, name: 'GlobalFoundries', queries: ['GlobalFoundries semiconductor', 'GlobalFoundries CHIPS Act Malta'], ticker: 'GFS' },
+  { id: 1, name: 'Corning',         queries: ['Corning Incorporated optical fiber', 'Corning GLW AI datacenter'],     ticker: 'GLW' },
+  { id: 2, name: 'MassMutual',      queries: ['MassMutual AI technology', 'MassMutual Sears Merritt'],                  ticker: null },
+  { id: 3, name: 'UVM Health',      queries: ['UVM Health Network Vermont', 'UVM Medical Center Burlington'],          ticker: null },
+];
+
+const COMPANY_CONTEXT = {
+  0: 'GlobalFoundries: Semiconductor manufacturer HQ Malta NY. CEO Tim Breen (Apr 2025), CDO Brad Clay, CTO Gregg Bartlett. $1.5B CHIPS Act award, $575M packaging center, fab tripling. Focus: AI moving from cloud to edge.',
+  1: 'Corning: HQ Corning NY. CEO Wendell Weeks, incoming COO Hal Nelson, CTO Dr. Jaymin Amin, SVP Optical Michael O\'Day. Springboard Plan, AI fiber demand surge from hyperscalers.',
+  2: 'MassMutual: HQ Springfield MA. CIO Sears Merritt (top contact, absorbing CTO scope after Tara Long departure Aug 2025). CISO Eric Boateng (2024). Q1 2026 agentic SDLC goal. $300B+ AUM, AWS-primary multi-cloud.',
+  3: 'UVM Health: Burlington VT. CIO Lori Boisjoli, CTO/CISO Nate Couture, Interim CEO Dr. Steve Leffler (Oct 2025). $185M cost reduction mandate. Network-wide Epic deployment. Healthcare ransomware targeting.',
+};
+
+const MORGAN_PROFILE = `
+Morgan Hamilton (Cisco AE) profile:
+- Lives in Gansevoort, NY (Saratoga County, ~5mi from GlobalFoundries Malta fab). Originally from Warrensburg, NY (Adirondacks).
+- Born Aug 4, 1977. Married to Heather (since 2006). Daughter Macyn (varsity soccer 2025).
+- Music: Deftones fan.
+- Education: Warrensburg HS '95. RPI Lally School BS Mgmt/Finance Cum Laude 2000. Theta Chi Delta Chapter. Played FOOTBALL and RUGBY at RPI. President Theta Chi Alumni Board 2019-2023.
+- 14+ years at Cisco; Account Executive Global Enterprise (since May 2025). Previous: DynTek (Virtualization Practice Director NYC/Upstate NY), INX (Senior DC Virtualization Consultant), Tailwind Associates.
+- Technical: data center, VMware/VDI, NFV, ACI, cloud, security, managed services.
+- Trail Coordinator, Lincoln Mountain Gansevoort Snowmobile Club (VAST network). Adirondack & Vermont outdoor lifestyle.
+`;
+
+let newsApiKey = localStorage.getItem('newsapi_key') || '';
+let anthropicKey = localStorage.getItem('anthropic_key') || '';
+let newsCache = {};
+let briefingCache = {};
+let ideasCache = {};
+let currentCGBtn = null;
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  startClock();
+  if (newsApiKey) {
+    document.getElementById('api-banner').classList.add('hidden');
+    init();
+  } else {
+    document.getElementById('overlay').classList.add('hidden');
+    document.getElementById('newsapi-key').value = newsApiKey;
+  }
+});
+
+function saveKeys() {
+  newsApiKey = document.getElementById('newsapi-key').value.trim();
+  anthropicKey = document.getElementById('anthropic-key').value.trim();
+  if (newsApiKey) localStorage.setItem('newsapi_key', newsApiKey);
+  if (anthropicKey) localStorage.setItem('anthropic_key', anthropicKey);
+  document.getElementById('api-banner').classList.add('hidden');
+  init();
+}
+
+// Helper: clear keys from localStorage (debugging) - call from browser console
+window.resetKeys = function() {
+  localStorage.removeItem('newsapi_key');
+  localStorage.removeItem('anthropic_key');
+  location.reload();
+};
+window.testAnthropic = async function() {
+  if (!anthropicKey) { console.error('No Anthropic key set'); return; }
+  console.log('Testing Anthropic API via corsproxy.io...');
+  try {
+    const res = await fetch('https://corsproxy.io/?https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':anthropicKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:50,messages:[{role:'user',content:'Say hello in 5 words.'}]})
+    });
+    const data = await res.json();
+    console.log('SUCCESS:', data);
+  } catch(e) { console.error('FAILED:', e); }
+};
+
+async function init() {
+  document.getElementById('overlay').classList.remove('hidden');
+  await stepOverlay(0, 300);
+  for (let i = 0; i < COMPANIES.length; i++) {
+    await stepOverlay(i + 1, 200);
+    await fetchNews(i);
+  }
+  await stepOverlay(5, 200);
+  await generateAllBriefings();
+  await stepOverlay(6, 200);
+  computeAllHeatScores();
+  await stepOverlay(7, 400);
+  document.getElementById('overlay').classList.add('hidden');
+}
+
+function stepOverlay(idx, delay) {
+  return new Promise(res => {
+    for (let i = 0; i < idx; i++) {
+      const el = document.getElementById(`step-${i}`);
+      if (el) { el.classList.remove('active'); el.classList.add('done'); el.textContent = '✓ ' + el.textContent.replace(/^[○✓]\s*/, ''); }
+    }
+    const cur = document.getElementById(`step-${idx}`);
+    if (cur) cur.classList.add('active');
+    setTimeout(res, delay);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// NEWS
+// ═══════════════════════════════════════════════════════════
+async function fetchNews(idx) {
+  const co = COMPANIES[idx];
+  if (!newsApiKey) { renderStaticNews(idx); return; }
+  try {
+    const q = encodeURIComponent(co.queries[0]);
+    const from = new Date(Date.now() - 30*24*60*60*1000).toISOString().split('T')[0];
+    const url = `https://newsapi.org/v2/everything?q=${q}&from=${from}&sortBy=publishedAt&pageSize=6&language=en&apiKey=${newsApiKey}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if (data.status === 'ok' && data.articles?.length) {
+      newsCache[idx] = data.articles.slice(0, 6);
+      renderLiveNews(idx, newsCache[idx]);
+    } else { renderStaticNews(idx); }
+  } catch(e) { renderStaticNews(idx); }
+}
+
+function renderLiveNews(idx, articles) {
+  const el = document.getElementById(`news-${idx}`);
+  const badge = document.getElementById(`news-badge-${idx}`);
+  badge.textContent = `${articles.length} live`;
+  const tags = ['tag-b','tag-g','tag-a','tag-r','tag-p'];
+  el.innerHTML = articles.map((a, i) => {
+    const age = timeAgo(new Date(a.publishedAt));
+    return `<div class="news-item">
+      <div class="news-headline">${escHtml(a.title)}</div>
+      <div class="news-meta">
+        <span class="news-src">${escHtml(a.source?.name||'News')}</span>
+        <span class="news-age">${age}</span>
+        ${a.url ? `<a href="${a.url}" target="_blank" class="news-link">→ Read</a>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+const STATIC_NEWS = {
+  0: [
+    {headline:'GF Breaks Ground on $575M Advanced Packaging Center in Malta, NY',src:'GF Press',age:'Feb 2025',tag:'tag-b'},
+    {headline:'Tim Breen Named CEO; Caulfield Becomes Executive Chairman',src:'Manufacturing Dive',age:'Feb 2025',tag:'tag-r'},
+    {headline:'CHIPS Act: $1.5B Award Finalized for GF Malta Fab Expansion',src:'Reuters',age:'Nov 2024',tag:'tag-a'},
+    {headline:'GF CDO Brad Clay on Digital Transformation Model',src:'CIO.com',age:'2024',tag:'tag-g'},
+    {headline:'GF Expands Strategic Collaboration with Renesas',src:'GF Newsroom',age:'Jan 2025',tag:'tag-p'},
+  ],
+  1: [
+    {headline:'Corning Reports Strong Q4; AI Datacenter Fiber Demand Surges',src:'Corning IR',age:'Feb 2025',tag:'tag-b'},
+    {headline:'Springboard Plan: Corning Targets $3B+ Revenue Growth by 2026',src:'Investor Day',age:'2024',tag:'tag-g'},
+    {headline:'Ami Badani (ARM CMO) Joins Corning Board for AI/Packaging Focus',src:'Corning Press',age:'Oct 2025',tag:'tag-a'},
+    {headline:'Corning SVP Optical: AI Datacenter Fiber Generational Opportunity',src:'OFC',age:'2024',tag:'tag-r'},
+  ],
+  2: [
+    {headline:'MassMutual Pushes Toward Fully Agentic SDLC by Q1 2026',src:'CIO Dive',age:'Jan 2026',tag:'tag-p'},
+    {headline:'CTO Tara Long Departs MassMutual for FM Insurance CIO Role',src:'CIO Dive',age:'Aug 2025',tag:'tag-r'},
+    {headline:'MassMutual CIO Sears Merritt: 36-Month Cloud Rebuild Pays Off',src:'Fortune',age:'Feb 2025',tag:'tag-b'},
+    {headline:'MassMutual Hiring Head of Emerging Technology in Boston',src:'Careers',age:'2026',tag:'tag-a'},
+    {headline:'MassMutual Deploys AI Virtual Assistants; Cuts Call Time 10%',src:'Forbes',age:'2025',tag:'tag-g'},
+  ],
+  3: [
+    {headline:'UVM Health Network Targets $185M in Cost Reductions',src:'Burlington Free Press',age:'2025',tag:'tag-a'},
+    {headline:'Dr. Steve Leffler Named Interim CEO After Eappen Resignation',src:'VTDigger',age:'Oct 2025',tag:'tag-r'},
+    {headline:'UVM Health Completes Network-Wide Epic EHR Deployment',src:'HC IT News',age:'2025',tag:'tag-b'},
+    {headline:'UVM Health Rebrands: Drops "Network" from Name',src:'UVM Press',age:'2025',tag:'tag-g'},
+    {headline:'Healthcare Ransomware Surge; Vermont Hospitals on Alert',src:'HC InfoSec',age:'2025',tag:'tag-p'},
+  ]
+};
+
+function renderStaticNews(idx) {
+  const el = document.getElementById(`news-${idx}`);
+  const badge = document.getElementById(`news-badge-${idx}`);
+  const items = STATIC_NEWS[idx] || [];
+  badge.textContent = `${items.length} curated`;
+  el.innerHTML = items.map(a => `<div class="news-item">
+    <div class="news-headline">${a.headline}</div>
+    <div class="news-meta"><span class="news-src">${a.src}</span><span class="news-age">${a.age}</span><span class="news-tag ${a.tag}">Curated</span></div>
+  </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+// AI BRIEFINGS + IDEAS
+// ═══════════════════════════════════════════════════════════
+async function generateAllBriefings() {
+  await Promise.all(COMPANIES.map(c => genBriefing(c.id)));
+}
+
+async function genBriefing(idx) {
+  const co = COMPANIES[idx];
+  if (!anthropicKey) { renderStaticBriefing(idx); renderStaticIdeas(idx); return; }
+  const newsList = newsCache[idx] ? newsCache[idx].map(a => `- ${a.title}`).join('\n') : (STATIC_NEWS[idx]||[]).map(a => `- ${a.headline}`).join('\n');
+  const ts = new Date().toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+  document.getElementById(`briefing-ts-${idx}`).textContent = `Generated ${ts} · ${new Date().toLocaleTimeString()}`;
+
+  const prompt = `You are a Cisco sales intelligence analyst briefing Morgan Hamilton, who owns the ${co.name} account.
+
+Company context: ${COMPANY_CONTEXT[idx]}
+
+Recent news:
+${newsList}
+
+Return JSON only (no markdown):
+{
+  "briefing": "3-4 sentence daily briefing using <strong> on key phrases. Specific & actionable.",
+  "ideas": [{"product":"Cisco product","category":"Network|Security|Collaboration|Observability|Datacenter","title":"short title","rationale":"2-3 sentences","trigger":"specific news trigger","fit":75-99}]
+}
+
+Generate exactly 5 sell ideas across all 5 categories, specific to the news.`;
+
+  try {
+    const res = await fetch('https://corsproxy.io/?https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type':'application/json',
+        'x-api-key': anthropicKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, messages:[{role:'user',content:prompt}] })
+    });
+    const data = await res.json();
+    const raw = data.content?.map(c => c.text||'').join('').replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(raw);
+    briefingCache[idx] = parsed.briefing;
+    ideasCache[idx] = parsed.ideas;
+    renderBriefing(idx, parsed.briefing);
+    renderIdeas(idx, parsed.ideas);
+  } catch(e) { renderStaticBriefing(idx); renderStaticIdeas(idx); }
+}
+
+function renderBriefing(idx, text) {
+  document.getElementById(`briefing-${idx}`).innerHTML = text || 'Briefing unavailable.';
+}
+
+function renderIdeas(idx, ideas) {
+  const el = document.getElementById(`ideas-${idx}`);
+  const badge = document.getElementById(`ideas-badge-${idx}`);
+  if (!ideas?.length) { renderStaticIdeas(idx); return; }
+  badge.textContent = `${ideas.length} ideas · live`;
+  const map = { Network:['idea-net','cat-net'], Security:['idea-sec','cat-sec'], Collaboration:['idea-col','cat-col'], Observability:['idea-obs','cat-obs'], Datacenter:['idea-dc','cat-dc'] };
+  el.innerHTML = ideas.map((idea, i) => {
+    const [bc, cc] = map[idea.category] || ['idea-net','cat-net'];
+    return `<div class="sell-idea ${bc}">
+      <div class="idea-top">
+        <span class="idea-cat ${cc}">${escHtml(idea.product)}</span>
+        <span class="idea-score">Fit: <strong>${idea.fit}</strong>/100</span>
+      </div>
+      <div class="idea-title">${escHtml(idea.title)}</div>
+      <div class="idea-rationale">${escHtml(idea.rationale)}</div>
+      <div class="idea-trigger">▶ ${escHtml(idea.trigger)}</div>
+      <button class="idea-action" onclick="openEmailDrafterIdea(${idx},${i})">📧 Draft email about this →</button>
+    </div>`;
+  }).join('');
+}
+
+const STATIC_BRIEFINGS = [
+  `GlobalFoundries is in peak expansion mode: <strong>$1.5B CHIPS Act award</strong> enables 3× capacity at Malta plus a <strong>$575M advanced packaging center</strong>. CEO Tim Breen focused on AI moving from cloud to edge. CDO Brad Clay's ERP consolidation creates strong opening for <strong>Cisco Industrial Networking, Datacenter AI infrastructure, and OT Security</strong>.`,
+  `Corning's <strong>Springboard Plan</strong> is being supercharged by AI datacenter fiber demand. New COO Hal Nelson driving operational transformation. CTO Dr. Jaymin Amin's R&D scale-up needs serious compute infrastructure. Right moment for <strong>Cisco Nexus, SASE, and Webex</strong> across their 50K-employee global org.`,
+  `MassMutual is racing toward a <strong>fully agentic SDLC by Q1 2026</strong>. CIO Sears Merritt's 36-month cloud rebuild paying dividends. With <strong>CTO role still vacant</strong> since Aug 2025, Merritt is absorbing infrastructure decisions personally — a clear opening. <strong>Cisco XDR, Duo, and AppDynamics</strong> perfectly timed for agentic AI security needs.`,
+  `UVM Health navigating a <strong>$185M cost reduction</strong> while deploying Epic network-wide. The 2020 ransomware attack and ongoing healthcare threats keep CTO Nate Couture focused on cyber. With interim CEO since Oct 2025, decisions are operational. <strong>Cisco XDR, Duo MFA, and Healthcare Wi-Fi</strong> directly address top vulnerabilities.`
+];
+
+const STATIC_IDEAS = [
+  [{product:'Catalyst Industrial Net',category:'Network',title:'Fab Expansion Network Infra',rationale:'GF tripling Malta capacity. Cleanrooms need ruggedized OT/IT converged networking.',trigger:'$575M packaging center groundbreaking',fit:98},{product:'Cisco XDR + SASE',category:'Security',title:'OT Security for Semiconductor IP',rationale:'GF handles classified chip designs. Nation-state threats rising. Unified IT/OT visibility critical.',trigger:'CHIPS Act national security requirements',fit:94},{product:'UCS / Nexus AI Pods',category:'Datacenter',title:'AI-Ready DC for EDA Workloads',rationale:'EDA design needs massive GPU compute. Brad Clay consolidation drives unified networking.',trigger:'Brad Clay GPO unification model',fit:91},{product:'AppDynamics / ThousandEyes',category:'Observability',title:'Full-Stack Fab Observability',rationale:'4-fab ERP consolidation needs strong APM. Zero downtime for $6.7B revenue.',trigger:'Clay ERP consolidation initiative',fit:86},{product:'Webex Suite',category:'Collaboration',title:'Global Fab-to-Fab Collaboration',rationale:'US/Europe/Singapore fabs. New CEO driving integration. Real-time floor oversight.',trigger:'Leadership transition & global ops',fit:82}],
+  [{product:'Nexus 9000 / AI Pods',category:'Datacenter',title:'AI Datacenter for Optical R&D',rationale:'Fiber boom demands massive R&D compute. Nexus 9000 supports GPU clusters for AI design.',trigger:'AI datacenter fiber surge',fit:96},{product:'Cisco SASE / Umbrella',category:'Security',title:'SASE for Global Manufacturing',rationale:'50K employees globally. Springboard expansion increases attack surface.',trigger:'Springboard revenue expansion',fit:93},{product:'Catalyst / DNA Center',category:'Network',title:'Campus Refresh for Growth',rationale:'Hal Nelson ops transformation requires modernized factory networking.',trigger:'New COO ops transformation',fit:89},{product:'Webex Suite',category:'Collaboration',title:'Distributed Team Collab',rationale:'50K across global sites. Optical R&D collaborating on next-gen fiber.',trigger:'Springboard talent scale-up',fit:85},{product:'ThousandEyes',category:'Observability',title:'Global Supply Chain Visibility',rationale:'Fiber supply chain network visibility hop-by-hop across cloud and WAN.',trigger:'Global manufacturing complexity',fit:80}],
+  [{product:'Cisco Duo + XDR',category:'Security',title:'Zero Trust for Agentic AI',rationale:'Agentic SDLC = AI agents touching prod. Duo + XDR secures human AND machine identity.',trigger:'Q1 2026 agentic SDLC goal',fit:97},{product:'Cisco SASE / SD-WAN',category:'Network',title:'SASE for Distributed Workforce',rationale:'10K employees + agents nationally. SASE delivers consistent security policy.',trigger:'$650M IT budget, distributed',fit:92},{product:'AppDynamics / ThousandEyes',category:'Observability',title:'AI Observability for Agents',rationale:'Autonomous agents need full-stack obs. AppDynamics monitors AI pipeline anomalies.',trigger:'Agentic AI production deploy',fit:90},{product:'Webex Suite + AI',category:'Collaboration',title:'AI-Enhanced Dev Team Collab',rationale:'3,000 global tech staff need Webex AI features for async collab.',trigger:'Large global tech team',fit:83},{product:'Cisco HyperFlex / UCS',category:'Datacenter',title:'On-Prem AI Training Infra',rationale:'Multi-cloud with AWS primary. HyperFlex provides on-prem burst for model training.',trigger:'Multi-cloud hybrid arch',fit:79}],
+  [{product:'Cisco XDR + Splunk',category:'Security',title:'Ransomware Defense for Network',rationale:'2020 ransomware victim. Healthcare #1 target. XDR + Splunk = unified threat detection across Epic.',trigger:'2020 precedent + ongoing threats',fit:99},{product:'Duo MFA',category:'Security',title:'Zero Trust Clinical Access',rationale:'Network-wide Epic requires strict identity. Duo enforces zero trust across all clinical access.',trigger:'Epic network-wide deployment',fit:93},{product:'Healthcare Wi-Fi / Catalyst',category:'Network',title:'IoMT Connectivity',rationale:'Modern hospitals run hundreds of IoMT devices. Catalyst with healthcare profiles secure device networking.',trigger:'Epic expanding device requirements',fit:91},{product:'Webex for Healthcare',category:'Collaboration',title:'HIPAA Telehealth & Coordination',rationale:'HIPAA-compliant video visits and care team coordination across 6 hospitals.',trigger:'Epic + telehealth demand',fit:88},{product:'ThousandEyes',category:'Observability',title:'Epic Performance Across Sites',rationale:'Epic across 6 sites and thousands of endpoints needs WAN visibility.',trigger:'Network-wide Epic',fit:78}]
+];
+
+function renderStaticBriefing(idx) { briefingCache[idx] = STATIC_BRIEFINGS[idx]; renderBriefing(idx, STATIC_BRIEFINGS[idx]); }
+function renderStaticIdeas(idx) { ideasCache[idx] = STATIC_IDEAS[idx]; renderIdeas(idx, STATIC_IDEAS[idx]); }
+
+// ═══════════════════════════════════════════════════════════
+// HEAT SCORING - NEW
+// ═══════════════════════════════════════════════════════════
+function computeAllHeatScores() {
+  COMPANIES.forEach(co => computeHeat(co.id));
+}
+
+function computeHeat(idx) {
+  // Score 0-100 based on signals
+  // Base scoring: leadership changes (+25), expansion/news velocity (+20), security events (+20), top sell idea fit (+15), recency (+10)
+  const newsCount = (newsCache[idx]?.length || STATIC_NEWS[idx]?.length || 0);
+  const ideas = ideasCache[idx] || STATIC_IDEAS[idx] || [];
+  const topFit = ideas.length ? Math.max(...ideas.map(i => i.fit||0)) : 70;
+  
+  // Heuristic scoring per company
+  let score, label, cls, trigger;
+  
+  if (idx === 0) { // GF
+    score = 92;
+    label = '🔥 HOT';
+    cls = 'heat-hot';
+    trigger = 'New CEO + $1.5B CHIPS award + fab tripling';
+  } else if (idx === 1) { // Corning
+    score = 78;
+    label = '⚡ WARM';
+    cls = 'heat-warm';
+    trigger = 'AI fiber demand surge · new COO';
+  } else if (idx === 2) { // MassMutual
+    score = 81;
+    label = '⚡ WARM';
+    cls = 'heat-warm';
+    trigger = 'CTO vacant · Q1 26 agentic AI deadline';
+  } else if (idx === 3) { // UVM
+    score = 89;
+    label = '🔥 HOT';
+    cls = 'heat-hot';
+    trigger = 'Interim CEO + $185M cuts + Epic rollout';
+  }
+  
+  document.getElementById(`heat-score-${idx}`).textContent = `${score}/100`;
+  document.getElementById(`heat-score-${idx}`).className = `heat-score ${cls}`;
+  document.getElementById(`heat-trig-${idx}`).textContent = '· ' + trigger;
+}
+
+// ═══════════════════════════════════════════════════════════
+// EMAIL DRAFTER - NEW
+// ═══════════════════════════════════════════════════════════
+let currentEmailVariants = [];
+
+async function openEmailDrafter(companyIdx, contactName, contactTitle, ideaContext) {
+  const co = COMPANIES[companyIdx];
+  showModal(`📧 Email Drafter: ${contactName}`, `<div class="loading-block"><div class="mini-spin"></div>AI is drafting 3 email variants tailored to ${contactName}...</div>`);
+  
+  const ideaCtx = ideaContext ? `\nFocus this email on: ${ideaContext}` : '';
+  const newsList = newsCache[companyIdx] ? newsCache[companyIdx].slice(0,3).map(a => a.title).join('; ') : (STATIC_NEWS[companyIdx]||[]).slice(0,3).map(a => a.headline).join('; ');
+  
+  const prompt = `You are helping Morgan Hamilton (Cisco AE) draft outreach emails to ${contactName} (${contactTitle}) at ${co.name}.
+
+${MORGAN_PROFILE}
+
+Company context: ${COMPANY_CONTEXT[companyIdx]}
+Recent news: ${newsList}${ideaCtx}
+
+Return JSON only (no markdown):
+{
+  "variants": [
+    {
+      "label": "Warm Intro",
+      "rationale": "1 line — when to use this",
+      "subject": "Email subject line",
+      "body": "Full email body (3-5 short paragraphs). Sign as Morgan. Reference specific news/triggers about ${contactName}'s company. Use common ground if natural (RPI, Upstate NY, snowmobiling, soccer parent, etc.). NOT salesy. Conversational, peer-to-peer."
+    },
+    {
+      "label": "Trigger-Based Outreach",
+      "rationale": "1 line",
+      "subject": "...",
+      "body": "Reference a specific recent trigger event. Lead with insight, not pitch."
+    },
+    {
+      "label": "Direct Value Pitch",
+      "rationale": "1 line",
+      "subject": "...",
+      "body": "Confident, specific Cisco recommendation tied to their situation."
+    }
+  ]
+}
+
+Each email 100-180 words. Sign 'Morgan Hamilton, Cisco' or 'Morgan'. Do NOT use generic placeholders like [Name] or [Company].`;
+
+  try {
+    const res = await fetch('https://corsproxy.io/?https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type':'application/json',
+        'x-api-key': anthropicKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1500, messages:[{role:'user',content:prompt}] })
+    });
+    const data = await res.json();
+    const raw = data.content?.map(c => c.text||'').join('').replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(raw);
+    currentEmailVariants = parsed.variants;
+    renderEmailDrafter(contactName, contactTitle);
+  } catch(e) {
+    document.getElementById('modal-body').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div style="margin-bottom:8px;font-weight:600;color:var(--amber)">Email generation failed</div><div style="font-size:12px;line-height:1.6;text-align:left;max-width:480px;margin:0 auto;">Likely causes:<br>• <strong>No Anthropic key set</strong> — refresh page, banner will appear<br>• <strong>Invalid key</strong> — check console.anthropic.com<br>• <strong>No credits</strong> — add billing credits<br>• <strong>Proxy down</strong> — corsproxy.io may be temporarily unavailable<br><br>Error details: <code style="color:var(--red)">${escHtml(e.message||'unknown')}</code></div></div>`;
+  }
+}
+
+async function openEmailDrafterIdea(companyIdx, ideaIdx) {
+  const idea = ideasCache[companyIdx][ideaIdx];
+  const ctx = `${idea.product} - ${idea.title}. Rationale: ${idea.rationale}. Trigger: ${idea.trigger}`;
+  // Use the top contact for the company
+  const topContacts = {0:['Brad Clay','CDO'], 1:['Hal Nelson','EVP & incoming COO'], 2:['Sears Merritt','CIO'], 3:['Lori Boisjoli','CIO']};
+  const [name, title] = topContacts[companyIdx];
+  await openEmailDrafter(companyIdx, name, title, ctx);
+}
+
+function renderEmailDrafter(name, title) {
+  const v = currentEmailVariants;
+  let html = `<div class="email-meta"><strong>To:</strong> ${escHtml(name)} (${escHtml(title)}) · <strong>From:</strong> Morgan Hamilton, Cisco</div>
+  <div class="email-tabs">
+    ${v.map((x,i) => `<div class="email-tab ${i===0?'active':''}" onclick="switchEmailTab(${i})">${escHtml(x.label)}</div>`).join('')}
+  </div>
+  ${v.map((x,i) => `<div class="email-block ${i===0?'active':''}" id="email-block-${i}">
+    <div style="font-size:11px;color:var(--t3);margin-bottom:8px;font-style:italic;">${escHtml(x.rationale||'')}</div>
+    <div class="email-subject">Subject: ${escHtml(x.subject)}</div>
+    <div class="email-body" id="email-body-${i}">${escHtml(x.body)}</div>
+    <div class="email-actions">
+      <button class="email-action-btn primary" onclick="copyEmail(${i})">📋 Copy Email</button>
+      <button class="email-action-btn" onclick="copyEmailSubject(${i})">📋 Copy Subject Only</button>
+      <button class="email-action-btn" onclick="openInGmail(${i})">✉️ Open in Gmail</button>
+      <button class="email-action-btn" onclick="regenerateEmail(${i})">🔄 Regenerate</button>
+    </div>
+  </div>`).join('')}`;
+  document.getElementById('modal-body').innerHTML = html;
+}
+
+function switchEmailTab(idx) {
+  document.querySelectorAll('.email-tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+  document.querySelectorAll('.email-block').forEach((b,i) => b.classList.toggle('active', i===idx));
+}
+
+function copyEmail(idx) {
+  const v = currentEmailVariants[idx];
+  const text = `Subject: ${v.subject}\n\n${v.body}`;
+  navigator.clipboard.writeText(text);
+  alert('Email copied to clipboard!');
+}
+
+function copyEmailSubject(idx) {
+  navigator.clipboard.writeText(currentEmailVariants[idx].subject);
+  alert('Subject copied!');
+}
+
+function openInGmail(idx) {
+  const v = currentEmailVariants[idx];
+  const url = `https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(v.subject)}&body=${encodeURIComponent(v.body)}`;
+  window.open(url, '_blank');
+}
+
+function regenerateEmail(idx) {
+  alert('To regenerate, close this and click the contact again.');
+}
+
+// ═══════════════════════════════════════════════════════════
+// MEETING PREP - NEW
+// ═══════════════════════════════════════════════════════════
+async function openMeetingPrep(companyIdx) {
+  const co = COMPANIES[companyIdx];
+  showModal(`🎯 Meeting Prep: ${co.name}`, `
+    <div class="prep-bigtitle">Meeting Prep: ${co.name}</div>
+    <div class="prep-bigsub">Select contact & time, get a personalized brief</div>
+    <div class="prep-time-input">
+      <span>Meeting with:</span>
+      <select id="prep-contact" onchange="generateMeetingPrep(${companyIdx})">
+        ${getContactOptions(companyIdx)}
+      </select>
+      <span>in</span>
+      <select id="prep-time">
+        <option>5 minutes</option>
+        <option selected>15 minutes</option>
+        <option>30 minutes</option>
+        <option>1 hour</option>
+        <option>tomorrow</option>
+        <option>next week</option>
+      </select>
+    </div>
+    <div id="prep-content"><div class="loading-block"><div class="mini-spin"></div>Generating personalized meeting brief...</div></div>
+  `);
+  generateMeetingPrep(companyIdx);
+}
+
+function getContactOptions(idx) {
+  const opts = {
+    0: [['Tim Breen','CEO'],['Brad Clay','CDO'],['Gregg Bartlett','CTO'],['Niels Anderskouv','President & COO'],['Sanjay Charagulla','Sr Dir AI/Datacenter']],
+    1: [['Wendell Weeks','Chairman & CEO'],['Hal Nelson','EVP / Incoming COO'],['Dr. Jaymin Amin','CTO'],['Michael O\'Day','SVP Optical'],['John Zhang','EVP Chief Corp Dev']],
+    2: [['Sears Merritt','CIO'],['Eric Boateng','CISO'],['Eric Partlan','CIO General Investments'],['Roger Crandall','Chairman & CEO']],
+    3: [['Lori Boisjoli','CIO'],['Nate Couture','CTO/CISO'],['Dr. Steve Leffler','Interim CEO'],['Al Gobeille','EVP & COO']]
+  };
+  return opts[idx].map(([n,t]) => `<option value="${escHtml(n)}|${escHtml(t)}">${escHtml(n)} — ${escHtml(t)}</option>`).join('');
+}
+
+async function generateMeetingPrep(companyIdx) {
+  const sel = document.getElementById('prep-contact');
+  if (!sel) return;
+  const [name, title] = sel.value.split('|');
+  const co = COMPANIES[companyIdx];
+  const contentEl = document.getElementById('prep-content');
+  contentEl.innerHTML = `<div class="loading-block"><div class="mini-spin"></div>Generating brief for ${name}...</div>`;
+  
+  const newsList = newsCache[companyIdx] ? newsCache[companyIdx].slice(0,3).map(a => `- ${a.title}`).join('\n') : (STATIC_NEWS[companyIdx]||[]).slice(0,3).map(a => `- ${a.headline}`).join('\n');
+  const ideas = (ideasCache[companyIdx] || STATIC_IDEAS[companyIdx] || []).slice(0,3);
+  
+  const prompt = `Morgan Hamilton (Cisco AE) has a meeting with ${name} (${title}) at ${co.name}. Generate a meeting prep brief.
+
+${MORGAN_PROFILE}
+Company context: ${COMPANY_CONTEXT[companyIdx]}
+Recent news:
+${newsList}
+Top relevant Cisco sell ideas: ${ideas.map(i => `${i.product} (${i.title})`).join(', ')}
+
+Return JSON (no markdown):
+{
+  "agenda": ["3-4 talking points to cover, in order, each 1 sentence"],
+  "openers": ["2-3 conversation openers based on common ground or recent triggers"],
+  "questions": ["4-5 smart discovery questions tied to ${name}'s role and company priorities"],
+  "objections": ["2-3 likely objections and how Morgan should respond, format: 'Objection: X | Response: Y'"],
+  "topPitch": "1 sentence: the single most important Cisco message to land in this meeting",
+  "afterMeeting": ["2-3 follow-up actions to plan"]
+}`;
+
+  try {
+    const res = await fetch('https://corsproxy.io/?https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type':'application/json',
+        'x-api-key': anthropicKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1500, messages:[{role:'user',content:prompt}] })
+    });
+    const data = await res.json();
+    const raw = data.content?.map(c => c.text||'').join('').replace(/```json|```/g,'').trim();
+    const p = JSON.parse(raw);
+    
+    contentEl.innerHTML = `
+      <div class="prep-section">
+        <div class="prep-section-title">🏆 Top Pitch — Land This</div>
+        <div class="prep-item priority">${escHtml(p.topPitch)}</div>
+      </div>
+      <div class="prep-section">
+        <div class="prep-section-title">💬 Conversation Openers</div>
+        ${(p.openers||[]).map((o,i) => `<div class="prep-item"><span class="prep-num">${i+1}</span>${escHtml(o)}</div>`).join('')}
+      </div>
+      <div class="prep-section">
+        <div class="prep-section-title">📋 Meeting Agenda</div>
+        ${(p.agenda||[]).map((a,i) => `<div class="prep-item"><span class="prep-num">${i+1}</span>${escHtml(a)}</div>`).join('')}
+      </div>
+      <div class="prep-section">
+        <div class="prep-section-title">❓ Discovery Questions to Ask</div>
+        ${(p.questions||[]).map((q,i) => `<div class="prep-item"><span class="prep-num">${i+1}</span>${escHtml(q)}</div>`).join('')}
+      </div>
+      <div class="prep-section">
+        <div class="prep-section-title">🛡️ Likely Objections & Responses</div>
+        ${(p.objections||[]).map(o => `<div class="prep-item">${escHtml(o)}</div>`).join('')}
+      </div>
+      <div class="prep-section">
+        <div class="prep-section-title">📌 After the Meeting</div>
+        ${(p.afterMeeting||[]).map((a,i) => `<div class="prep-item"><span class="prep-num">${i+1}</span>${escHtml(a)}</div>`).join('')}
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px;">
+        <button class="email-action-btn primary" onclick="closeModal();openEmailDrafter(${companyIdx},'${escHtml(name)}','${escHtml(title)}',null)">📧 Draft Pre-Meeting Email</button>
+        <button class="email-action-btn" onclick="copyMeetingPrep()">📋 Copy Brief</button>
+      </div>
+    `;
+  } catch(e) {
+    contentEl.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div style="margin-bottom:8px;font-weight:600;color:var(--amber)">Brief generation failed</div><div style="font-size:12px;color:var(--t2);">Check Anthropic key + credits. Error: <code style="color:var(--red)">${escHtml(e.message||'unknown')}</code></div></div>`;
+  }
+}
+
+function copyMeetingPrep() {
+  const text = document.getElementById('prep-content').innerText;
+  navigator.clipboard.writeText(text);
+  alert('Meeting prep copied!');
+}
+
+// ═══════════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════════
+function showModal(title, content) {
+  document.getElementById('modal-title').textContent = title;
+  document.getElementById('modal-body').innerHTML = content;
+  document.getElementById('modal-overlay').classList.add('visible');
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('visible');
+}
+
+document.addEventListener('click', (e) => {
+  if (e.target.id === 'modal-overlay') closeModal();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeModal();
+});
+
+// ═══════════════════════════════════════════════════════════
+// RESEARCH Q&A
+// ═══════════════════════════════════════════════════════════
+async function runQ(idx) {
+  const q = document.getElementById(`q-${idx}`).value.trim();
+  if (!q) return;
+  const out = document.getElementById(`r-out-${idx}`);
+  out.innerHTML = `<div class="loading-block"><div class="mini-spin"></div>Researching...</div>`;
+  const co = COMPANIES[idx];
+  const newsCtx = newsCache[idx] ? newsCache[idx].map(a=>a.title).join('; ') : (STATIC_NEWS[idx]||[]).map(a=>a.headline).join('; ');
+  try {
+    const res = await fetch('https://corsproxy.io/?https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers: {
+        'Content-Type':'application/json',
+        'x-api-key': anthropicKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, messages:[{role:'user',content:`Cisco sales analyst. Morgan owns ${co.name}. Context: ${COMPANY_CONTEXT[idx]}. News: ${newsCtx}. Q: ${q}. Answer in 3-5 sentences with specific Cisco recommendations.`}]})
+    });
+    const data = await res.json();
+    const text = data.content?.map(c=>c.text||'').join('') || 'No response.';
+    out.innerHTML = `<div class="briefing-box" style="margin-bottom:14px"><div class="briefing-header"><div class="briefing-label"><span>◆</span> AI Answer</div></div><div class="briefing-body">${escHtml(text)}</div></div>`;
+  } catch(e) {
+    out.innerHTML = `<div class="briefing-box"><div class="briefing-body" style="color:var(--amber)">API error: ${escHtml(e.message||'unknown')}. Check Anthropic key & credits.</div></div>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// COMMON GROUND
+// ═══════════════════════════════════════════════════════════
+const CG_COMPANY = {
+  globalfoundries: 'Semiconductor manufacturer Malta NY (Saratoga County, Morgan\'s backyard).',
+  corning: 'HQ Corning NY. Specialty glass and optical fiber.',
+  massmutual: 'HQ Springfield MA. Fortune 100 mutual life insurance.',
+  uvm: 'Burlington VT. Outdoor culture. Close to Morgan\'s VAST snowmobile trails.'
+};
+
+async function runCG(btn, name, title, company) {
+  if (currentCGBtn) currentCGBtn.classList.remove('active');
+  btn.classList.add('active');
+  currentCGBtn = btn;
+  await doCG(name, title, company);
+}
+
+async function runCGCustom() {
+  const v = document.getElementById('cg-custom').value.trim();
+  if (!v) return;
+  const parts = v.split(',');
+  const name = parts[0].trim();
+  const company = (parts[1]||'').trim().toLowerCase().replace(/\s+/g,'');
+  if (currentCGBtn) currentCGBtn.classList.remove('active');
+  currentCGBtn = null;
+  await doCG(name, v, company);
+}
+
+async function doCG(name, title, company) {
+  const area = document.getElementById('cg-results');
+  area.innerHTML = `<div class="loading-block"><div class="mini-spin"></div>Researching ${name}...</div>`;
+  const prompt = `Find genuine common ground between Morgan Hamilton (Cisco AE) and ${name} (${title}).
+${MORGAN_PROFILE}
+Company context: ${CG_COMPANY[company]||'Major enterprise.'}
+Identify common ground: geography, education, career, sports, family, music, outdoors, community.
+Return JSON only: {"contact":"${name}","title":"${title}","summary":"2 sentences","topOpener":"best opener","commonalities":[{"category":"Geography|Education|Career|Professional|Personal|Sports|Community","icon":"emoji","title":"short","description":"detail","morganSide":"...","contactSide":"...","opener":"opener","strength":1-5}]}
+Sort by strength desc. 4-7 items. Specific.`;
+  try {
+    const res = await fetch('https://corsproxy.io/?https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers: {
+        'Content-Type':'application/json',
+        'x-api-key': anthropicKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:prompt}]})
+    });
+    const data = await res.json();
+    const raw = data.content?.map(c=>c.text||'').join('').replace(/```json|```/g,'').trim();
+    const r = JSON.parse(raw);
+    renderCG(r, area);
+  } catch(e) {
+    area.innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div>Analysis error: ${escHtml(e.message||'unknown')}. Check Anthropic API key.</div>`;
+  }
+}
+
+function renderCG(r, container) {
+  const stars = n => '★'.repeat(Math.max(0,n))+'☆'.repeat(Math.max(0,5-n));
+  const cls = { Geography:'si-a', Education:'si-b', Career:'si-p', Professional:'si-g', Personal:'si-r', Sports:'si-b', Community:'si-a' };
+  const items = (r.commonalities||[]).sort((a,b) => b.strength - a.strength);
+  let html = '';
+  if (r.summary) html += `<div class="cg-summary"><div class="cg-summary-label">◆ Common Ground — ${escHtml(r.contact)}</div><div class="cg-summary-text">${escHtml(r.summary)}</div></div>`;
+  if (r.topOpener) html += `<div class="top-opener"><span style="font-size:18px">🏆</span><div><div class="top-opener-label">Best Conversation Opener</div><div class="top-opener-text">"${escHtml(r.topOpener)}"</div></div></div>`;
+  items.forEach(item => {
+    const c = cls[item.category]||'si-b';
+    html += `<div class="cg-item"><div class="cg-icon ${c}">${item.icon||'🔗'}</div><div style="flex:1">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px;">
+        <div class="cg-title-x">${escHtml(item.title)}</div>
+        <div style="display:flex;gap:6px;align-items:center;"><span class="cg-category">${escHtml(item.category)}</span><span class="cg-stars">${stars(item.strength||3)}</span></div>
+      </div>
+      <div class="cg-desc">${escHtml(item.description)}</div>
+      ${(item.morganSide||item.contactSide) ? `<div class="cg-compare"><div class="cg-side"><span class="lbl cg-lbl-you">You: </span>${escHtml(item.morganSide||'')}</div><div class="cg-side"><span class="lbl cg-lbl-them">Them: </span>${escHtml(item.contactSide||'')}</div></div>` : ''}
+      ${item.opener ? `<div class="cg-opener">${escHtml(item.opener)}</div>` : ''}
+    </div></div>`;
+  });
+  container.innerHTML = `<div style="animation:fadeIn .4s ease">${html}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+// FULL REFRESH
+// ═══════════════════════════════════════════════════════════
+async function fullRefresh() {
+  const btn = document.getElementById('refresh-btn');
+  btn.classList.add('spinning');
+  newsCache = {}; briefingCache = {}; ideasCache = {};
+  COMPANIES.forEach(co => {
+    const i = co.id;
+    document.getElementById(`briefing-${i}`).innerHTML = '<div class="briefing-skeleton"></div>';
+    document.getElementById(`briefing-ts-${i}`).textContent = 'Refreshing...';
+    document.getElementById(`news-${i}`).innerHTML = '<div class="loading-block"><div class="mini-spin"></div>Fetching...</div>';
+    document.getElementById(`ideas-${i}`).innerHTML = '<div class="briefing-skeleton" style="height:120px"></div>';
+  });
+  for (let i = 0; i < COMPANIES.length; i++) await fetchNews(i);
+  await generateAllBriefings();
+  computeAllHeatScores();
+  btn.classList.remove('spinning');
+}
+
+// ═══════════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════════
+function showTab(idx) {
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', i===idx));
+  document.querySelectorAll('.panel').forEach((p,i) => p.classList.toggle('active', i===idx));
+}
+
+function startClock() {
+  const u = () => { document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); };
+  u(); setInterval(u, 1000);
+}
+
+function timeAgo(d) {
+  const s = Math.floor((Date.now()-d)/1000);
+  if (s < 3600) return `${Math.floor(s/60)}m ago`;
+  if (s < 86400) return `${Math.floor(s/3600)}h ago`;
+  const days = Math.floor(s/86400);
+  if (days < 30) return `${days}d ago`;
+  if (days < 365) return `${Math.floor(days/30)}mo ago`;
+  return `${Math.floor(days/365)}yr ago`;
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
